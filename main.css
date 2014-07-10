@@ -1,7 +1,27 @@
 .tile {
   background-color: black;
-  height: 5px;
-  width: 5px;
+  height: 26.66667px;
+  width: 26.66667px;
   color: white;
   border: 1px solid grey;
+  text-align: center;
+  position: relative;
+}
+
+.game-window {
+  height: 1000px;
+}
+
+#character {
+  position: absolute;
+  z-index: 2;
+  height: 26.66667px;
+  width: 26.66667px;
+  text-align: center;
+  font-size: 1.3em;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  margin: auto;
 }

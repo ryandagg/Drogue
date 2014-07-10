@@ -40,19 +40,66 @@ var GameSpace = (function() {
 		Handlebars.registerHelper("columnCounter", function() {
 			counterC++;
 			// console.log(currentLevel.columns);
-			return counterC % currentLevel.columns;
+			return Math.floor(counterC/currentLevel.columns);
 		})
 
 		$("#game-window").append(gameTemplate(currentLevel));
 	};
 
+	var Character = function() {
+		this.position = [Math.floor(currentLevel.columns/2), Math.floor(currentLevel.rows/2)];
+		this.placeCharacter = function() {
+			$("#location-" + String(this.position[0]) + "-" + String(this.position[1])).append("<div id='character'>@</div>");
+		}
+
+		this.updateCharacterPosition = function() {
+			$("#character").remove();
+			$("#location-" + String(this.position[0]) + "-" + String(this.position[1])).append("<div id='character'>@</div>");
+		}
+		this.moveCharacter = function(direction) {
+			if(direction === "right") {
+				this.position[0]++;
+
+			}
+			else if(direction === "left") {
+				this.position[0]--;
+			}
+			else if(direction === "down") {
+				this.position[1]++;
+			}
+			else if(direction === "up") {
+				this.position[1]--;
+			}
+			this.updateCharacterPosition();
+		}	
+	}
+
+	var rogue = new Character();
+
+	// var characterPos = [Math.floor(currentLevel.columns/2), Math.floor(currentLevel.rows/2)];
+
+	// var placeCharacter = function() {
+	// 	$("#location-" + String(characterPos[0]) + "-" + String(characterPos[1])).append("<div id='character'>@</div>");
+	// }
+
+	// var changeCharacterPosition = function(direction) {
+	// 	if(direction === "right") {
+	// 		characterPos[0]++;
+
+	// 	}
+	// 	$("#character").remove();
+	// 	$("#location-" + String(characterPos[0]) + "-" + String(characterPos[1])).append("<div id='character'>@</div>");
+	// }
+
 	var init = function() {
 		drawMap();
+		rogue.placeCharacter();
 	}
 
 	return {
-		currentLevel: currentLevel,
+		// currentLevel: currentLevel,
 		init: init,
+		rogue: rogue,
 	}
 
 })();
