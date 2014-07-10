@@ -56,20 +56,46 @@ var GameSpace = (function() {
 			$("#character").remove();
 			$("#location-" + String(this.position[0]) + "-" + String(this.position[1])).append("<div id='character'>@</div>");
 		}
-		this.moveCharacter = function(direction) {
-			if(direction === "right") {
+		this.moveCharacter = function(keyCode) {
+			// var moveDict = {right: []}
+			// "right"
+			if(keyCode === 108) {
 				this.position[0]++;
 
 			}
-			else if(direction === "left") {
+			// "left"
+			else if(keyCode === 104) {
 				this.position[0]--;
 			}
-			else if(direction === "down") {
+			// "down"
+			else if(keyCode === 106) {
 				this.position[1]++;
 			}
-			else if(direction === "up") {
+			// "up"
+			else if(keyCode === 107) {
 				this.position[1]--;
 			}
+			// "upright"
+			else if(keyCode === 117) {
+				this.position[1]--;
+				this.position[0]++;
+			}
+			// "upleft"
+			else if(keyCode === 121) {
+				this.position[1]--;
+				this.position[0]--;
+			}
+			// "downright"
+			else if(keyCode === 110) {
+				this.position[1]++;
+				this.position[0]++;
+			}
+			// "downleft"
+			else if(keyCode === 98) {
+				this.position[1]++;
+				this.position[0]--;
+			}
+			
 			this.updateCharacterPosition();
 		}	
 	}
@@ -108,5 +134,24 @@ var GameSpace = (function() {
 
 
 $(document).on('ready', function() {
-  GameSpace.init();
+	GameSpace.init();
+
+	$(document).keypress(function(e) {
+		console.log(e);
+		GameSpace.rogue.moveCharacter(e.charCode);
+	})
+	// var attachInputEvents = function () {
+	// $(document).bind("enterKey", function(e) {
+	// 	$(this).prev(".day-block").addClass("editable");
+	// 	var eventText = $(this).val()
+	// 	$(this).replaceWith("<div class = 'editableEvent'>" + eventText + "</div>")
+	// })
+
+	// $(document).keyup(function(e) {
+	// 	if(e.keyCode == 13) {
+ //    		$(this).trigger("enterKey");
+	// 	}
+	// });
+// }
+
 });
