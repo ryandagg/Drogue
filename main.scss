@@ -1,0 +1,11 @@
+$tileBaseColor: black;
+$tileWidth: 5px;
+$tileHeight: 5px;
+
+.tile {
+	background-color: $tileBaseColor;
+	height: $tileHeight;
+	width: $tileWidth;
+	color: white;
+	border: 1px solid grey;
+}

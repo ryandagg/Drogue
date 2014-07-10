@@ -7,9 +7,34 @@
   <link rel="stylesheet" type="text/css" href="main.css">
 </head>
 <body>
-	
-  <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
-  <script src="main.js"></script>
+	<div id="main-wrapper">
+
+		<div id="game-window">
+			<!-- jQuery appends here -->
+		</div>
+
+	</div>
+
+
+
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js"></script>
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+	<script src= "//cdnjs.cloudflare.com/ajax/libs/handlebars.js/2.0.0-alpha.4/handlebars.js"></script>
+	<script src="main.js"></script>
+
+	<script id="game-window-template" type="text/x-handlebars-template">
+		<table>
+			<tbody> 
+		    {{#map}}
+		        <tr> 
+		        	{{#this}}
+		            	<td class="tile" id='location-{{columnCounter}}-{{rowCounter}}'>{{this}}</td> 
+		            {{/this}}
+		        </tr> 
+	        {{/map}}
+		    </tbody> 
+		</table>
+	</script>
 
 </body>
 </html>
