@@ -1,7 +1,7 @@
 $tileBaseColor: black;
-$gameHeight: 800px;
-$tileWidth: $gameHeight/30;
-$tileHeight: $gameHeight/30;
+$gameHeight: 900px;
+$tileWidth: $gameHeight/60;
+$tileHeight: $gameHeight/60;
 
 .tile {
 	background-color: $tileBaseColor;
@@ -11,6 +11,7 @@ $tileHeight: $gameHeight/30;
 	border: 1px solid grey;
 	text-align: center;
 	position: relative;
+	font-size: 3;
 }
 
 .game-window {
@@ -23,7 +24,7 @@ $tileHeight: $gameHeight/30;
 	height: $tileHeight;
 	width: $tileWidth;
 	text-align: center;
-	// line-height: 1;
+	line-height: 0.84;
 	font-size: 1.3em;
 	top :0;
 	bottom: 0;

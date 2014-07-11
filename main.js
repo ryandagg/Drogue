@@ -1,60 +1,151 @@
-var GameSpace = (function() {
+/* Guidelines from Raine:
+- all functions as methods
+- don't make children responsible for parents 
 
-	var Level = function(rows, columns) {
+*/
+
+/* Current focus:
+- convert all tiles to an object in currentLevel.map
+
+
+ */
+
+
+var GameSpace = (function() {
+// helper funcitons
+	// formats location of object to reference tile id
+	var pos = function(loc) {
+		return "#column-" + String(loc[0]) + "-row-" + String(loc[1]);
+	};
+
+// level and map related code
+	var Level = function(columns, rows) {
 		this.rows = rows;
 		this.columns = columns;
 		this.map = [];
 
-	};
-
-	Level.prototype.tileMatrixGenerator = function() {
+		this.tileMatrixGenerator = function() {
 		// console.log(this.rows)
-		for (var r = 0; r < this.rows; r++) {
-			var row = [];
-			for(var c = 0; c < this.columns; c++) {
-				row.push([c, r]);
-			}
-			this.map.push(row);
-		}	
+			for (var r = 0; r < this.rows; r++) {
+				var row = [];
+				for(var c = 0; c < this.columns; c++) {
+					row.push([c, r]);
+				}
+				this.map.push(row);
+			}	
+		};
+
+		this.createMap = function () {
+			currentLevel.tileMatrixGenerator();
+		};
+
+		this.drawMap = function() {
+			$("#game-window").empty();
+			this.createMap();
+			var sourceGame = $("#game-window-template").html();
+			var gameTemplate = Handlebars.compile(sourceGame);
+
+			var counter = 0;
+			Handlebars.registerHelper("columnCounter", function() {
+				// counter++;
+				return counter % currentLevel.columns;
+				// console.log(currentLevel.columns);
+			})
+
+			Handlebars.registerHelper("rowCounter", function() {
+				counter++;
+				// console.log(currentLevel.rows);
+				return Math.floor(counter/currentLevel.columns);
+			})
+			
+
+			$("#game-window").append(gameTemplate(currentLevel));
+		};
+
 	};
 
-	var currentLevel = new Level(30, 30);
+	// Level.prototype.tileMatrixGenerator = function() {
+	// 	// console.log(this.rows)
+	// 	for (var r = 0; r < this.rows; r++) {
+	// 		var row = [];
+	// 		for(var c = 0; c < this.columns; c++) {
+	// 			row.push([c, r]);
+	// 		}
+	// 		this.map.push(row);
+	// 	}	
+	// };
 
-	var createMap = function () {
-		currentLevel.tileMatrixGenerator();
-	};
+	var currentLevel = new Level(60, 40);
 
-	var drawMap = function() {
-		$("#game-window").empty();
-		createMap();
-		var sourceGame = $("#game-window-template").html();
-		var gameTemplate = Handlebars.compile(sourceGame);
+	// create map object?
+	// var createMap = function () {
+	// 	currentLevel.tileMatrixGenerator();
+	// };
 
-		var counterR = -1;
-		Handlebars.registerHelper("rowCounter", function() {
-			counterR++;
-			// console.log(currentLevel.rows);
-			return counterR % currentLevel.rows;
-		})
-		var counterC = -1;
-		Handlebars.registerHelper("columnCounter", function() {
-			counterC++;
-			// console.log(currentLevel.columns);
-			return Math.floor(counterC/currentLevel.columns);
-		})
+	// var drawMap = function() {
+	// 	$("#game-window").empty();
+	// 	createMap();
+	// 	var sourceGame = $("#game-window-template").html();
+	// 	var gameTemplate = Handlebars.compile(sourceGame);
 
-		$("#game-window").append(gameTemplate(currentLevel));
-	};
+	// 	var counter = 0;
+	// 	Handlebars.registerHelper("columnCounter", function() {
+	// 		// counter++;
+	// 		return counter % currentLevel.columns;
+	// 		// console.log(currentLevel.columns);
+	// 	})
 
+	// 	Handlebars.registerHelper("rowCounter", function() {
+	// 		counter++;
+	// 		// console.log(currentLevel.rows);
+	// 		return Math.floor(counter/currentLevel.columns);
+	// 	})
+		
+
+	// 	$("#game-window").append(gameTemplate(currentLevel));
+	// };
+
+// terrain related code
+	var Terrain = function(location) {
+		this.classCSS = "impassable";
+		this.location = location;
+	}
+
+	var Wall = function(location) {
+		Terrain.call(this, location);
+		this.color = "grey";
+		this.icon = "hash";
+	}
+
+	// Wall.prototype.create = function() {
+	// 	var el = $(this.location)
+	// 		.css({'color': this.color, "font-size": "1.3em"})
+	// 		.addClass("icon-" + this.iconType);
+	// 		return el;
+	// }
+
+	Wall.prototype = new Terrain();
+	Wall.prototype.constructor = Wall;
+
+	var populateWalls = function() {
+		var firstWall = new Wall([0, 0]);
+		console.log(firstWall);
+		console.log(pos(firstWall.location))
+		$(pos(firstWall.location)).addClass("icon-hash");
+		// $("#column-" + String(firstWall.position[0]) + "-row-" + String(firstWall.position[1])).addClass("icon-hash");
+	}
+
+
+// character related code
 	var Character = function() {
 		this.position = [Math.floor(currentLevel.columns/2), Math.floor(currentLevel.rows/2)];
 		this.placeCharacter = function() {
-			$("#location-" + String(this.position[0]) + "-" + String(this.position[1])).append("<div id='character'>@</div>");
+			$("#column-" + String(this.position[0]) + "-row-" + String(this.position[1])).append("<div id='character'>@</div>");
 		}
 
 		this.updateCharacterPosition = function() {
 			$("#character").remove();
-			$("#location-" + String(this.position[0]) + "-" + String(this.position[1])).append("<div id='character'>@</div>");
+			$("#column-" + String(this.position[0]) + "-row-" + String(this.position[1])).append("<div id='character'>@</div>");
 		}
 		this.moveCharacter = function(keyCode) {
 			// var moveDict = {right: []}
@@ -102,28 +193,15 @@ var GameSpace = (function() {
 
 	var rogue = new Character();
 
-	// var characterPos = [Math.floor(currentLevel.columns/2), Math.floor(currentLevel.rows/2)];
-
-	// var placeCharacter = function() {
-	// 	$("#location-" + String(characterPos[0]) + "-" + String(characterPos[1])).append("<div id='character'>@</div>");
-	// }
-
-	// var changeCharacterPosition = function(direction) {
-	// 	if(direction === "right") {
-	// 		characterPos[0]++;
-
-	// 	}
-	// 	$("#character").remove();
-	// 	$("#location-" + String(characterPos[0]) + "-" + String(characterPos[1])).append("<div id='character'>@</div>");
-	// }
-
+// everything else
 	var init = function() {
-		drawMap();
+		console.log("init called");
+		currentLevel.drawMap();
 		rogue.placeCharacter();
+		populateWalls();
 	}
 
 	return {
-		// currentLevel: currentLevel,
 		init: init,
 		rogue: rogue,
 	}
@@ -135,23 +213,9 @@ var GameSpace = (function() {
 
 $(document).on('ready', function() {
 	GameSpace.init();
-
+	// keyboard handler
 	$(document).keypress(function(e) {
-		console.log(e);
+		// console.log(e);
 		GameSpace.rogue.moveCharacter(e.charCode);
 	})
-	// var attachInputEvents = function () {
-	// $(document).bind("enterKey", function(e) {
-	// 	$(this).prev(".day-block").addClass("editable");
-	// 	var eventText = $(this).val()
-	// 	$(this).replaceWith("<div class = 'editableEvent'>" + eventText + "</div>")
-	// })
-
-	// $(document).keyup(function(e) {
-	// 	if(e.keyCode == 13) {
- //    		$(this).trigger("enterKey");
-	// 	}
-	// });
-// }
-
 });

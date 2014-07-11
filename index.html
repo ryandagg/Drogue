@@ -4,17 +4,20 @@
   <meta charset="utf-8">
   <title>Untitled</title>
   <link rel="stylesheet" type="text/css" href="http://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.1.1/css/bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="http://summer2014-refactoru-students.herokuapp.com/public/fontello/css/fontello.css">
   <link rel="stylesheet" type="text/css" href="main.css">
 </head>
 <body>
-	<div id="main-wrapper">
+	<div id="main-wrapper" class="container-fluid">
+		<div class="row">
 
-		<div id="game-window">
-			<!-- jQuery appends here -->
+			<div id="game-window" class="col-md-12">
+				<!-- jQuery appends here -->
+			</div>
 		</div>
-
 	</div>
-
+	<div class="messages">
+	</div>
 
 
 	<script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js"></script>
@@ -26,9 +29,9 @@
 		<table>
 			<tbody> 
 		    {{#map}}
-		        <tr> 
+		        <tr class='row'> 
 		        	{{#this}}
-	            	<td class="tile" id='location-{{rowCounter}}-{{columnCounter}}'>.</td> 
+	            	<td class="tile" id='column-{{columnCounter}}-row-{{rowCounter}}'>.</td> 
 		            {{/this}}
 		        </tr> 
 	        {{/map}}
