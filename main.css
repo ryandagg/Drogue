@@ -1,29 +1,39 @@
 .tile {
   background-color: black;
-  height: 15px;
-  width: 15px;
-  color: white;
-  border: 1px solid grey;
-  text-align: center;
+  color: #999;
+  border: 1px solid #666;
   position: relative;
-  font-size: 3;
+  width: 13.33333px;
+  height: 22px;
 }
 
-.game-window {
-  height: 1000px;
+#game-window {
+  height: 800px;
+  margin: 2%;
 }
 
 #character {
   position: absolute;
   z-index: 2;
-  height: 15px;
-  width: 15px;
+  height: 22px;
+  width: 13.33333px;
   text-align: center;
   line-height: 0.84;
-  font-size: 1.3em;
+  font-size: 2.2em;
   top: 0;
   bottom: 0;
   right: 0;
   left: 0;
   margin: auto;
+}
+
+.wall {
+  color: #aaa;
+  padding-left: 0.09em;
+}
+
+.dot {
+  color: #fff;
+  padding-left: 0.25em;
+  padding-bottom: 2 em;
 }
