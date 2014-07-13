@@ -28,7 +28,6 @@ var GameSpace = (function() {
 			if(keyCode === 108) {
 				var horz = 1
 				var vert = 0
-				console.log(currentLevel.map[rogue.y][rogue.x + 1].impassable);
 				if(checkPassable(horz, vert)) {
 					$("#messages").text("You shall not pass!")
 				}
@@ -41,7 +40,6 @@ var GameSpace = (function() {
 			else if(keyCode === 104) {
 				var horz = -1
 				var vert = 0
-				console.log(currentLevel.map[rogue.y][rogue.x - 1].impassable);
 				if(checkPassable(horz, vert)) {
 					$("#messages").text("You shall not pass!")
 				}
@@ -53,7 +51,6 @@ var GameSpace = (function() {
 			else if(keyCode === 106) {
 				var horz = 0
 				var vert = 1
-				console.log(currentLevel.map[rogue.y][rogue.x - 1].impassable);
 				if(checkPassable(horz, vert)) {
 					$("#messages").text("You shall not pass!")
 				}
@@ -65,7 +62,6 @@ var GameSpace = (function() {
 			else if(keyCode === 107) {
 				var horz = 0
 				var vert = -1
-				console.log(currentLevel.map[rogue.y][rogue.x - 1].impassable);
 				if(checkPassable(horz, vert)) {
 					$("#messages").text("You shall not pass!")
 				}
@@ -77,7 +73,6 @@ var GameSpace = (function() {
 			else if(keyCode === 117) {
 				var horz = 1
 				var vert = -1
-				console.log(currentLevel.map[rogue.y][rogue.x - 1].impassable);
 				if(checkPassable(horz, vert)) {
 					$("#messages").text("You shall not pass!")
 				}
@@ -89,7 +84,6 @@ var GameSpace = (function() {
 			else if(keyCode === 121) {
 				var horz = -1
 				var vert = -1
-				console.log(currentLevel.map[rogue.y][rogue.x - 1].impassable);
 				if(checkPassable(horz, vert)) {
 					$("#messages").text("You shall not pass!")
 				}
@@ -101,7 +95,6 @@ var GameSpace = (function() {
 			else if(keyCode === 110) {
 				var horz = 1
 				var vert = 1
-				console.log(currentLevel.map[rogue.y][rogue.x - 1].impassable);
 				if(checkPassable(horz, vert)) {
 					$("#messages").text("You shall not pass!")
 				}
@@ -113,7 +106,6 @@ var GameSpace = (function() {
 			else if(keyCode === 98) {
 				var horz = -1
 				var vert = 1
-				console.log(currentLevel.map[rogue.y][rogue.x - 1].impassable);
 				if(checkPassable(horz, vert)) {
 					$("#messages").text("You shall not pass!")
 				}
@@ -169,14 +161,32 @@ var GameSpace = (function() {
 			this.map[rogue.y][rogue.x] = rogue;
 		}
 
+		this.updateDisplay = function(rog, obj2) {
+			// console.log(rog.location())
+			// $(pos(rog.location)).removeClass(obj2.class);
+			// console.log(obj2.text);
+			// console.log(rog.text);
+			$(pos(rog.location())).text(rog.text);
+			$(pos(obj2.location())).text(obj2.text);
+			$(pos(obj2.location())).addClass(obj2.class);
+			$(pos(rog.location())).addClass(rog.class);
+			$(pos(rog.location())).removeClass(obj2.class);
+			$(pos(obj2.location())).removeClass(rog.class);
+
+		}
+
 		this.updateRogue = function(horz, vert) {
+			var tempTile = new Tile(rogue.x , rogue.y); 
+			console.log(tempTile.location());
 			rogue.x += horz;
 			rogue.y += vert;
 			this.map[rogue.y][rogue.x] = rogue;
-			this.map[rogue.y - vert][rogue.x - horz] = new Tile(rogue.x - horz, rogue.y - vert)
-			
-			this.drawMap();
+			this.map[rogue.y - vert][rogue.x - horz] = tempTile 
+			console.log(rogue.location())
+			// this.drawMap();
+			this.updateDisplay(rogue, tempTile)
 		}
+
 
 		this.drawMap = function() {
 			$("#game-window").empty();
@@ -210,10 +220,13 @@ var GameSpace = (function() {
 	var Tile = function(x, y) {
 		this.x = x;
 		this.y = y;
-		this.location = [this.x, this.y];
 		this.text = "."
 		this.class = "dot"
 		this.impassable = false
+	}
+
+	Tile.prototype.location = function() {
+		return [this.x, this.y]
 	}
 
 	var Terrain = function() {
@@ -241,7 +254,9 @@ var GameSpace = (function() {
 		this.y = Math.floor(currentLevel.rows/2)
 		// this.x = 58;
 		// this.y = 1;
-		this.location = [this.x, this.y]
+		this.location = function() {
+			return [this.x, this.y];
+		}
 		this.text = "@"
 		this.class = "character"
 
