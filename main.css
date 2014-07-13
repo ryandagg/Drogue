@@ -1,39 +1,46 @@
-.tile {
-  background-color: black;
-  color: #999;
-  border: 1px solid #666;
-  position: relative;
-  width: 13.33333px;
-  height: 22px;
-}
-
 #game-window {
-  height: 800px;
+  height: 1000px;
   margin: 2%;
 }
 
-#character {
-  position: absolute;
-  z-index: 2;
-  height: 22px;
-  width: 13.33333px;
+table {
+  background: black;
+  color: #fff;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+td {
+  height: 20px;
   text-align: center;
-  line-height: 0.84;
-  font-size: 2.2em;
-  top: 0;
-  bottom: 0;
-  right: 0;
-  left: 0;
-  margin: auto;
+  width: 20px;
+  border: 1px solid #aaa;
+}
+
+.tile {
+  width: 16.66667px;
+  height: 27.5px;
+  overflow: hidden;
+  position: relative;
+}
+
+.character {
+  z-index: 2;
 }
 
 .wall {
   color: #aaa;
-  padding-left: 0.09em;
+  padding-left: 0.05em;
+  font-size: 1.7em;
 }
 
 .dot {
   color: #fff;
-  padding-left: 0.25em;
-  padding-bottom: 2 em;
+  padding-left: 0.10em;
+}
+
+#messages {
+  height: 40px;
+  background-color: #eee;
+  color: black;
 }

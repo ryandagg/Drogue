@@ -1,29 +1,8 @@
 $tileBaseColor: black;
-$gameHeight: 800px;
+$gameHeight: 1000px;
 $tileWidth: $gameHeight/60;
 $tileHeight: $gameHeight/40*1.1;
 
-.tile {
-	
-	background-color: $tileBaseColor;
-	color: #999;
-	border: 1px solid #666;
-	position: relative;
-	width: $tileWidth;
-	height: $tileHeight;
-	// margin: none;
-	// padding: none;
-	
-	// font-size: 3;
-}
-
-// .tile div {
-// 	display: block;
-// 	text-align: center;
-// 	overflow: hidden;
-// 	margin: none;
-// 	padding: none;
-// }
 
 #game-window {
 	height: $gameHeight;
@@ -31,77 +10,62 @@ $tileHeight: $gameHeight/40*1.1;
 
 }
 
-#character {
-	position: absolute;
-	z-index: 2;
-	height: $tileHeight;
-	width: $tileWidth;
+table {
+	background: black;
+	color: #fff;
+	table-layout: fixed;
+	border-collapse: collapse;
+}
+
+td {
+	height: 20px;
 	text-align: center;
-	line-height: 0.84;
-	font-size: 2.2em;
-	top :0;
-	bottom: 0;
-	right: 0;
-	left: 0;
-	margin: auto;
+	width: 20px;
+	border: 1px solid #aaa;
+}
+
+.tile {
+	width: $tileWidth;
+	height: $tileHeight;
+	overflow: hidden;
+	position: relative;
+}
+
+
+.character {
+	// position: absolute;
+	z-index: 2;
+	// height: $tileHeight;
+	// width: $tileWidth;
+	// text-align: center;
+	// line-height: 0.84;
+	// font-size: 1.2em;
+	// top :0;
+	// bottom: 0;
+	// right: 0;
+	// left: 0;
+	// padding-right: 2px;
+	// padding-top: 15px;
+	// margin: auto;
 }
 
 .wall {
 	color: #aaa;
-	padding-left: 0.09em;
+	padding-left: 0.05em;
+	font-size: 1.7em;
 }
 
 .dot {
 	color: #fff;
-	padding-left: 0.25em;
-	padding-bottom: 2
+	padding-left: 0.10em;
+	// padding-bottom: 2
 
-	em;
 }
 
-// .icon-dot, .icon-hash{
-// 	font-size: 0.5em;
-// 	text-align: left;
-// 	margin-right: none;
-// 	margin-left: none;
+#messages {
+	// display: block;
+	height: 40px;
+	background-color: #eee;
+	color: black;
 
-
-// }
-
-// .icon-hash {
-// 	color: grey;
-// 	// font-size: 0.8em;
-// 	// text-align: right;
-
-// }
-
-// #character:before, #character:before {
-//   font-family: "fontello";
-//   font-style: normal;
-//   font-weight: normal;
-//   speak: none;
- 
-//   display: inline-block;
-//   text-decoration: inherit;
-//   width: 1em;
-//   margin-right: .2em;
-//   text-align: center;
-//   /* opacity: .8; */
- 
-//   /* For safety - reset parent styles, that can break glyph codes*/
-//   font-variant: normal;
-//   text-transform: none;
-     
-//   /* fix buttons height, for twitter bootstrap */
-//   line-height: 1em;
- 
-//   /* Animation center compensation - margins should be symmetric */
-//   /* remove if not needed */
-//   margin-left: .2em;
- 
-//   /* you can be more comfortable with increased icons size */
-//   /* font-size: 120%; */
- 
-//   /* Uncomment for 3D effect */
-//   /* text-shadow: 1px 1px 1px rgba(127, 127, 127, 0.3); */
-// }
+}
