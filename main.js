@@ -5,8 +5,8 @@
 */
 
 /* Current focus:
-- convert all tiles to an object in currentLevel.map
-	-create tile parent class, then append to map
+- random map generation psuedo code
+	-
 
 
  */
@@ -23,8 +23,13 @@ var GameSpace = (function() {
 		$("#messages").append("<p>" + text + "</p>")
 	}
 
-	var checkPassable = function(horz, vert) {
-		return currentLevel.map[rogue.y + vert][rogue.x + horz].impassable
+	var checkNextTile = function(horz, vert) {
+		if(currentLevel.map[rogue.y + vert][rogue.x + horz].impassable) {
+			return 'impassable'
+		}
+		else if(currentLevel.map[rogue.y + vert][rogue.x + horz].monster) {
+			return 'monster'
+		}
 	}
 
 	var keyHandler = function(keyCode) {
@@ -32,8 +37,11 @@ var GameSpace = (function() {
 			if(keyCode === 108) {
 				var horz = 1
 				var vert = 0
-				if(checkPassable(horz, vert)) {
+				if(checkNextTile(horz, vert) === 'impassable') {
 					addMessage("You shall not pass!")
+				}
+				else if (checkNextTile(horz, vert) === 'monster') {
+					// call a combat function
 				}
 				else {
 					currentLevel.updateRogue(horz, vert);
@@ -44,7 +52,7 @@ var GameSpace = (function() {
 			else if(keyCode === 104) {
 				var horz = -1
 				var vert = 0
-				if(checkPassable(horz, vert)) {
+				if(checkNextTile(horz, vert) === 'impassable') {
 					addMessage("You shall not pass!")
 				}
 				else {
@@ -55,7 +63,7 @@ var GameSpace = (function() {
 			else if(keyCode === 106) {
 				var horz = 0
 				var vert = 1
-				if(checkPassable(horz, vert)) {
+				if(checkNextTile(horz, vert) === 'impassable') {
 					addMessage("You shall not pass!")
 				}
 				else {
@@ -66,7 +74,7 @@ var GameSpace = (function() {
 			else if(keyCode === 107) {
 				var horz = 0
 				var vert = -1
-				if(checkPassable(horz, vert)) {
+				if(checkNextTile(horz, vert) === 'impassable') {
 					addMessage("You shall not pass!")
 				}
 				else {
@@ -77,7 +85,7 @@ var GameSpace = (function() {
 			else if(keyCode === 117) {
 				var horz = 1
 				var vert = -1
-				if(checkPassable(horz, vert)) {
+				if(checkNextTile(horz, vert) === 'impassable') {
 					addMessage("You shall not pass!")
 				}
 				else {
@@ -88,7 +96,7 @@ var GameSpace = (function() {
 			else if(keyCode === 121) {
 				var horz = -1
 				var vert = -1
-				if(checkPassable(horz, vert)) {
+				if(checkNextTile(horz, vert) === 'impassable') {
 					addMessage("You shall not pass!")
 				}
 				else {
@@ -99,7 +107,7 @@ var GameSpace = (function() {
 			else if(keyCode === 110) {
 				var horz = 1
 				var vert = 1
-				if(checkPassable(horz, vert)) {
+				if(checkNextTile(horz, vert) === 'impassable') {
 					addMessage("You shall not pass!")
 				}
 				else {
@@ -110,7 +118,7 @@ var GameSpace = (function() {
 			else if(keyCode === 98) {
 				var horz = -1
 				var vert = 1
-				if(checkPassable(horz, vert)) {
+				if(checkNextTile(horz, vert) === 'impassable') {
 					addMessage("You shall not pass!")
 				}
 				else {
@@ -142,47 +150,81 @@ var GameSpace = (function() {
 			this.tileMatrixGenerator();
 		};
 
-		this.createTerrain = function() {
-			for(var i = 0; i < this.map.length; i++) {
-				for (var j = 0; j < this.map[0].length; j++) {
-					if(i === 0 || i === this.rows - 1) {
-						this.map[i][j] = new Wall([i, j]);
+		this.createRoom = function(room) {
+			var offsetX = room.xCenter - Math.floor(room.width/2);
+			var offsetY = room.yCenter - Math.floor(room.height/2)
+
+			for(var i = 0; i < room.height; i++) {
+				for (var j = 0; j < room.width; j++) {
+					// top & bottom of room
+					if(i === 0 || i === room.height - 1) {
+						this.map[i + offsetY][j + offsetX] = new Wall(j + offsetX, i + offsetY);
 					}
-					else if(j === 0 || j === this.columns - 1) {
-						this.map[i][j] = new Wall(i, j);
+					// left & right of room
+					else if(j === 0 || j === room.width - 1) {
+						this.map[i + offsetY][j + offsetX] = new Wall(j + offsetX, i + offsetY);
 					}
 					
 				}
 			}
+			console.log(this.map[16][27])
 		}
-// THIS IS  NOT WORKING
-		this.placeMonsters = function(quantity) {
-			while (i < 10) {
+
+		this.createTerrain = function() {
+			var minRoomDimension = 4;
+			var maxRoomDimension = 8;
+			var outerWalls = new Room(Math.floor(currentLevel.columns/2), Math.floor(currentLevel.rows/2), currentLevel.columns, currentLevel.rows)
+			this.createRoom(outerWalls);
+
+			// creates the edge of map walls
+			// for(var i = 0; i < this.map.length; i++) {
+			// 	for (var j = 0; j < this.map[0].length; j++) {
+			// 		if(i === 0 || i === this.rows - 1) {
+			// 			this.map[i][j] = new Wall([i, j]);
+			// 		}
+			// 		else if(j === 0 || j === this.columns - 1) {
+			// 			this.map[i][j] = new Wall(i, j);
+			// 		}
+					
+			// 	}
+			// }
+
+			var firstRoom = new Room (Math.floor(currentLevel.columns/2), Math.floor(currentLevel.rows/2), Math.floor(Math.random() * (maxRoomDimension -minRoomDimension) + minRoomDimension), Math.floor(Math.random() * maxRoomDimension + minRoomDimension) );
+			this.createRoom(firstRoom);
+			// console.log(firstRoom);
+			 
+
+		}
+
+		this.createMonsters = function(quantity) {
+			var i = 0;
+			while (i < quantity) {
 				var randomY = Math.floor(Math.random() * currentLevel.rows)
 				var randomX = Math.floor(Math.random() * currentLevel.columns)
-				var randomYeek = new Yeek();
+				var randomRat = new Rat(randomX, randomY);
 				if(currentLevel.map[randomY][randomX].class === 'dot') {
-					currentLevel.map[randomY][randomX] = randomYeek;
+					// console.log('thing')
+					currentLevel.map[randomY][randomX] = randomRat;
 					i++;
 					
 				}
 
 			}
-		}
+		};
 
 		this.placeCharacter = function() {
 			this.map[rogue.y][rogue.x] = rogue;
-		}
+		};
 
 		this.updateDisplay = function(obj1, obj2) {
 			$(pos(obj1.location())).text(obj1.text);
 			$(pos(obj2.location())).text(obj2.text);
-			$(pos(obj2.location())).addClass(obj2.class);
-			$(pos(obj1.location())).addClass(obj1.class);
-			$(pos(obj1.location())).removeClass(obj2.class);
-			$(pos(obj2.location())).removeClass(obj1.class);
+			$(pos(obj1.location())).removeClass();
+			$(pos(obj2.location())).removeClass();
+			$(pos(obj2.location())).addClass(obj2.class + " tile");
+			$(pos(obj1.location())).addClass(obj1.class + " tile");
 
-		}
+		};
 
 		this.updateRogue = function(horz, vert, obj1, obj2) {
 			var tempTile = new Tile(rogue.x , rogue.y); 
@@ -194,7 +236,7 @@ var GameSpace = (function() {
 			console.log(rogue.location())
 			// this.drawMap();
 			this.updateDisplay(rogue, tempTile)
-		}
+		};
 
 
 		this.drawMap = function() {
@@ -222,7 +264,13 @@ var GameSpace = (function() {
 		};
 
 	};
-
+// random map generation code
+	var Room = function(xCenter, yCenter, width, height) {
+		this.xCenter = xCenter;
+		this.yCenter = yCenter;
+		this.width = width;
+		this. height = height;	
+	}
 
 // terrain related code
 	var Tile = function(x, y) {
@@ -243,8 +291,8 @@ var GameSpace = (function() {
 	Terrain.prototype = new Tile();
 	Terrain.prototype.constructor = Terrain;
 
-	var Wall = function(location) {
-		Tile.call(this, location);
+	var Wall = function(x, y) {
+		Tile.call(this, x, y);
 		this.text = "#"
 		this.class = "wall"
 		this.impassable = true;
@@ -255,20 +303,21 @@ var GameSpace = (function() {
 
 
 // character related code
-	var Character = function() {
+	var Character = function(x, y) {
+		Tile.call(this, x, y);
 		this.text = "@"
 		this.class = "character"
-		this.x = Math.floor(currentLevel.columns/2);
-		this.y = Math.floor(currentLevel.rows/2)
+		// this.x = Math.floor(currentLevel.columns/2);
+		// this.y = Math.floor(currentLevel.rows/2)
 		this.health = 100;
 		this.attack = 100;
 		this.defense = 100;
-		this.damage = 100;
-		this.location = function() {
-			return [this.x, this.y];
-		}
-		
+		this.damage = 100;	
 	}
+
+	Character.prototype = new Tile();
+	Character.prototype.constructor = Character;
+
 
 // monster related code
 	var Monster = function() {
@@ -276,15 +325,20 @@ var GameSpace = (function() {
 		this.attackBase = 100;
 		this.damageBase = 100;
 		this.defenseBase = 100;
+		this.monster = true;
 	}
 
 	Monster.prototype.attack = function() {
 		// do something
 	}
 
-	var Yeek = function() {
-		this.class = 'yeek'
-		this.text = 'y'
+	Monster.prototype = new Tile();
+	Monster.prototype.constructor = Monster;
+
+	var Rat = function(x, y) {
+		Tile.call(this, x, y)
+		this.class = 'rat'
+		this.text = 'r'
 		this.health = this.healthBase/10;
 		this.attack = this.attackBase/10;
 		this.defense = this.defenseBase/10;
@@ -293,13 +347,13 @@ var GameSpace = (function() {
 
 	}
 
-	Yeek.prototype = new Monster();
-	Yeek.prototype.constructor = Yeek;
+	Rat.prototype = new Monster();
+	Rat.prototype.constructor = Rat;
 		
 // everything else
 	// create local 'globals'
 	var currentLevel = new Level(60, 40);
-	var rogue = new Character();
+	var rogue = new Character(Math.floor(currentLevel.columns/2), Math.floor(currentLevel.rows/2));
 	var monsterList = []
 
 	var initialize = function() {
@@ -307,7 +361,7 @@ var GameSpace = (function() {
 		currentLevel.createMap();
 		currentLevel.createTerrain();
 		currentLevel.placeCharacter();
-		currentLevel.placeMonsters;
+		currentLevel.createMonsters(10);
 		currentLevel.drawMap();
 		
 	}
@@ -315,6 +369,7 @@ var GameSpace = (function() {
 	return {
 		initialize: initialize,
 		rogue: rogue,
+		currentLevel: currentLevel,
 		keyHandler: keyHandler,
 	}
 
