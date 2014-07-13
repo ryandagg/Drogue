@@ -3,12 +3,17 @@ $gameHeight: 1000px;
 $tileWidth: $gameHeight/60;
 $tileHeight: $gameHeight/40*1.1;
 
+.main-wrapper {
+
+}
 
 #game-window {
 	height: $gameHeight;
 	margin: 2%;
 
 }
+
+
 
 table {
 	background: black;
@@ -33,20 +38,11 @@ td {
 
 
 .character {
-	// position: absolute;
 	z-index: 2;
-	// height: $tileHeight;
-	// width: $tileWidth;
-	// text-align: center;
-	// line-height: 0.84;
-	// font-size: 1.2em;
-	// top :0;
-	// bottom: 0;
-	// right: 0;
-	// left: 0;
-	// padding-right: 2px;
-	// padding-top: 15px;
-	// margin: auto;
+	// padding-left: 0.10em;
+	// padding-top: 0.10em;
+	font-size: 1.205em;
+	line-height: 1.5;
 }
 
 .wall {
@@ -64,8 +60,11 @@ td {
 
 #messages {
 	// display: block;
-	height: 40px;
+	height: 120px;
+	width: $gameHeight;
 	background-color: #eee;
 	color: black;
+	overflow-y: scroll;
+	margin: 2% 0 2% 2%;
 
 }

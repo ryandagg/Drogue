@@ -19,6 +19,10 @@ var GameSpace = (function() {
 		return "#column-" + String(loc[0]) + "-row-" + String(loc[1]);
 	};
 
+	var addMessage = function(text) {
+		$("#messages").append("<p>" + text + "</p>")
+	}
+
 	var checkPassable = function(horz, vert) {
 		return currentLevel.map[rogue.y + vert][rogue.x + horz].impassable
 	}
@@ -29,7 +33,7 @@ var GameSpace = (function() {
 				var horz = 1
 				var vert = 0
 				if(checkPassable(horz, vert)) {
-					$("#messages").text("You shall not pass!")
+					addMessage("You shall not pass!")
 				}
 				else {
 					currentLevel.updateRogue(horz, vert);
@@ -41,7 +45,7 @@ var GameSpace = (function() {
 				var horz = -1
 				var vert = 0
 				if(checkPassable(horz, vert)) {
-					$("#messages").text("You shall not pass!")
+					addMessage("You shall not pass!")
 				}
 				else {
 					currentLevel.updateRogue(horz, vert);
@@ -52,7 +56,7 @@ var GameSpace = (function() {
 				var horz = 0
 				var vert = 1
 				if(checkPassable(horz, vert)) {
-					$("#messages").text("You shall not pass!")
+					addMessage("You shall not pass!")
 				}
 				else {
 					currentLevel.updateRogue(horz, vert);
@@ -63,7 +67,7 @@ var GameSpace = (function() {
 				var horz = 0
 				var vert = -1
 				if(checkPassable(horz, vert)) {
-					$("#messages").text("You shall not pass!")
+					addMessage("You shall not pass!")
 				}
 				else {
 					currentLevel.updateRogue(horz, vert);
@@ -74,7 +78,7 @@ var GameSpace = (function() {
 				var horz = 1
 				var vert = -1
 				if(checkPassable(horz, vert)) {
-					$("#messages").text("You shall not pass!")
+					addMessage("You shall not pass!")
 				}
 				else {
 					currentLevel.updateRogue(horz, vert);
@@ -85,7 +89,7 @@ var GameSpace = (function() {
 				var horz = -1
 				var vert = -1
 				if(checkPassable(horz, vert)) {
-					$("#messages").text("You shall not pass!")
+					addMessage("You shall not pass!")
 				}
 				else {
 					currentLevel.updateRogue(horz, vert);
@@ -96,7 +100,7 @@ var GameSpace = (function() {
 				var horz = 1
 				var vert = 1
 				if(checkPassable(horz, vert)) {
-					$("#messages").text("You shall not pass!")
+					addMessage("You shall not pass!")
 				}
 				else {
 					currentLevel.updateRogue(horz, vert);
@@ -107,7 +111,7 @@ var GameSpace = (function() {
 				var horz = -1
 				var vert = 1
 				if(checkPassable(horz, vert)) {
-					$("#messages").text("You shall not pass!")
+					addMessage("You shall not pass!")
 				}
 				else {
 					currentLevel.updateRogue(horz, vert);
@@ -134,11 +138,6 @@ var GameSpace = (function() {
 			// console.log(this.map);
 		};
 
-		// a potentialy different way to build the map
-		// for(var i = 0; i < this.rows * this.columns; i++) {
-		// 	this.map.push(new Tile([i % this.columns, Math.floor(i/this.columns)]));
-		// }
-
 		this.createMap = function () {
 			this.tileMatrixGenerator();
 		};
@@ -156,26 +155,36 @@ var GameSpace = (function() {
 				}
 			}
 		}
+// THIS IS  NOT WORKING
+		this.placeMonsters = function(quantity) {
+			while (i < 10) {
+				var randomY = Math.floor(Math.random() * currentLevel.rows)
+				var randomX = Math.floor(Math.random() * currentLevel.columns)
+				var randomYeek = new Yeek();
+				if(currentLevel.map[randomY][randomX].class === 'dot') {
+					currentLevel.map[randomY][randomX] = randomYeek;
+					i++;
+					
+				}
+
+			}
+		}
 
 		this.placeCharacter = function() {
 			this.map[rogue.y][rogue.x] = rogue;
 		}
 
-		this.updateDisplay = function(rog, obj2) {
-			// console.log(rog.location())
-			// $(pos(rog.location)).removeClass(obj2.class);
-			// console.log(obj2.text);
-			// console.log(rog.text);
-			$(pos(rog.location())).text(rog.text);
+		this.updateDisplay = function(obj1, obj2) {
+			$(pos(obj1.location())).text(obj1.text);
 			$(pos(obj2.location())).text(obj2.text);
 			$(pos(obj2.location())).addClass(obj2.class);
-			$(pos(rog.location())).addClass(rog.class);
-			$(pos(rog.location())).removeClass(obj2.class);
-			$(pos(obj2.location())).removeClass(rog.class);
+			$(pos(obj1.location())).addClass(obj1.class);
+			$(pos(obj1.location())).removeClass(obj2.class);
+			$(pos(obj2.location())).removeClass(obj1.class);
 
 		}
 
-		this.updateRogue = function(horz, vert) {
+		this.updateRogue = function(horz, vert, obj1, obj2) {
 			var tempTile = new Tile(rogue.x , rogue.y); 
 			console.log(tempTile.location());
 			rogue.x += horz;
@@ -214,7 +223,6 @@ var GameSpace = (function() {
 
 	};
 
-	var currentLevel = new Level(60, 40);
 
 // terrain related code
 	var Tile = function(x, y) {
@@ -230,8 +238,6 @@ var GameSpace = (function() {
 	}
 
 	var Terrain = function() {
-		// this.class = " impassable";
-		// this.location = location;
 	}
 
 	Terrain.prototype = new Tile();
@@ -250,81 +256,60 @@ var GameSpace = (function() {
 
 // character related code
 	var Character = function() {
+		this.text = "@"
+		this.class = "character"
 		this.x = Math.floor(currentLevel.columns/2);
 		this.y = Math.floor(currentLevel.rows/2)
-		// this.x = 58;
-		// this.y = 1;
+		this.health = 100;
+		this.attack = 100;
+		this.defense = 100;
+		this.damage = 100;
 		this.location = function() {
 			return [this.x, this.y];
 		}
-		this.text = "@"
-		this.class = "character"
-
-
-		// this.updateCharacterLocation = function() {
-		// 	$("#character").remove();
-		// 	$("#column-" + String(this.location[0]) + "-row-" + String(this.location[1])).append("<div id='character'>@</div>");
-		// }
-		// this.moveCharacter = function(keyCode) {
-		// 	// var moveDict = {right: []}
-		// 	// "right"
-		// 	if(keyCode === 108) {
-		// 		this.location[0]++;
-
-		// 	}
-		// 	// "left"
-		// 	else if(keyCode === 104) {
-		// 		this.location[0]--;
-		// 	}
-		// 	// "down"
-		// 	else if(keyCode === 106) {
-		// 		this.location[1]++;
-		// 	}
-		// 	// "up"
-		// 	else if(keyCode === 107) {
-		// 		this.location[1]--;
-		// 	}
-		// 	// "upright"
-		// 	else if(keyCode === 117) {
-		// 		this.location[1]--;
-		// 		this.location[0]++;
-		// 	}
-		// 	// "upleft"
-		// 	else if(keyCode === 121) {
-		// 		this.location[1]--;
-		// 		this.location[0]--;
-		// 	}
-		// 	// "downright"
-		// 	else if(keyCode === 110) {
-		// 		this.location[1]++;
-		// 		this.location[0]++;
-		// 	}
-		// 	// "downleft"
-		// 	else if(keyCode === 98) {
-		// 		this.location[1]++;
-		// 		this.location[0]--;
-		// 	}
-			
-		// 	this.updateCharacterLocation();
-		// }	
+		
 	}
 
+// monster related code
+	var Monster = function() {
+		this.healthBase = 100;
+		this.attackBase = 100;
+		this.damageBase = 100;
+		this.defenseBase = 100;
+	}
 
-	
+	Monster.prototype.attack = function() {
+		// do something
+	}
 
+	var Yeek = function() {
+		this.class = 'yeek'
+		this.text = 'y'
+		this.health = this.healthBase/10;
+		this.attack = this.attackBase/10;
+		this.defense = this.defenseBase/10;
+		this.damage = this.damageBase/10;
+		this.treasureQuality = 1;
+
+	}
+
+	Yeek.prototype = new Monster();
+	Yeek.prototype.constructor = Yeek;
+		
 // everything else
 	// create local 'globals'
-	var rogue = new Character();
 	var currentLevel = new Level(60, 40);
+	var rogue = new Character();
+	var monsterList = []
 
 	var initialize = function() {
 		// console.log("initialize called");
-		// rogue.placeCharacter();
-		// populateWalls();
 		currentLevel.createMap();
 		currentLevel.createTerrain();
 		currentLevel.placeCharacter();
+		currentLevel.placeMonsters;
 		currentLevel.drawMap();
+		
 	}
 
 	return {

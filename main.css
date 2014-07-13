@@ -26,6 +26,8 @@ td {
 
 .character {
   z-index: 2;
+  font-size: 1.205em;
+  line-height: 1.5;
 }
 
 .wall {
@@ -40,7 +42,10 @@ td {
 }
 
 #messages {
-  height: 40px;
+  height: 120px;
+  width: 1000px;
   background-color: #eee;
   color: black;
+  overflow-y: scroll;
+  margin: 2% 0 2% 2%;
 }
