@@ -1,12 +1,16 @@
 /* Guidelines from Raine:
-- all functions as methods
-- don't make children responsible for parents 
+-all functions as methods
+-don't make children responsible for parents 
 
 */
 
 /* Current focus:
 - random map generation psuedo code
-	-
+	-current problems: 
+		-nested rooms where inner room fills one dimension of external and inner door is facing space that does not contain outer door.
+		-spaces that are note walls that are completely surrounded by rooms
+		-nested rooms can share the same door
+
 
 
  */
@@ -40,9 +44,9 @@ var GameSpace = (function() {
 				if(checkNextTile(horz, vert) === 'impassable') {
 					addMessage("You shall not pass!")
 				}
-				else if (checkNextTile(horz, vert) === 'monster') {
-					// call a combat function
-				}
+				// else if (checkNextTile(horz, vert) === 'monster') {
+				// 	// call a combat function
+				// }
 				else {
 					currentLevel.updateRogue(horz, vert);
 				}
@@ -140,7 +144,7 @@ var GameSpace = (function() {
 			for (var r = 0; r < this.rows; r++) {
 				var row = [];
 				for(var c = 0; c < this.columns; c++) {
-					row.push(new Tile([c, r]));
+					row.push(new Tile(c, r));
 				}
 				this.map.push(row);
 			}	
@@ -151,7 +155,8 @@ var GameSpace = (function() {
 			this.tileMatrixGenerator();
 		};
 
-		this.createRoom = function(room) {
+		this.createRoom = function(room, grid) {
+			// can delte the 2 lines below and just use UpLeftCornerX & Y.
 			var offsetX = room.xCenter - Math.floor(room.width/2);
 			var offsetY = room.yCenter - Math.floor(room.height/2);
 
@@ -159,11 +164,11 @@ var GameSpace = (function() {
 				for (var j = 0; j < room.width; j++) {
 					// top & bottom of room
 					if(i === 0 || i === room.height - 1) {
-						this.map[i + offsetY][j + offsetX] = new Wall(j + offsetX, i + offsetY);
+						grid[i + offsetY][j + offsetX] = new Wall(j + offsetX, i + offsetY);
 					}
 					// left & right of room
 					else if(j === 0 || j === room.width - 1) {
-						this.map[i + offsetY][j + offsetX] = new Wall(j + offsetX, i + offsetY);
+						grid[i + offsetY][j + offsetX] = new Wall(j + offsetX, i + offsetY);
 					}
 					
 				}
@@ -183,15 +188,15 @@ var GameSpace = (function() {
 			return true;
 		}
 
-		// checks if spaces to left/right or up/down from coordinate are empty returns, true or false
+		// checks if spaces to left/right or up/down from coordinate are empty returns, true or false. THIS IS CURRENTLY NOT WORKING properly: rooms are being generated without doors.
 		this.checkDoorPath = function(x, y, grid) {
 			// check left and right
 			if (grid[y][x - 1].class === 'dot' && grid[y][x + 1].class === 'dot') {
-				console.log("leftright");
+				// console.log("leftright");
 				return true;
 			}
 			else if (grid[y - 1][x].class === 'dot' && grid[y + 1][x].class === 'dot') {
-				console.log("updown");
+				// console.log("updown");
 				return true;
 			}
 			return false;
@@ -199,20 +204,20 @@ var GameSpace = (function() {
 
 		// Takes an array of rooms and checks if doors can be placed on each room so that there are no unreachable rooms.
 		this.doorsUpdateIfPossible = function(array, grid) {
-			// tempMap.randomRooms(Math.ceil(this.columns/2));
 			var counter = 0;
-			var wantToBreak = false;
 			for(var k = 0; k < array.length; k++) {
 				var offsetX = array[k].xCenter - Math.floor(array[k].width/2);
 				var offsetY = array[k].yCenter - Math.floor(array[k].height/2);
-				midArray: for(var y = 0; y < array[k].height; y++) {
+				MIDARRAY: for(var y = 0; y < array[k].height; y++) {
 					for (var x = 0; x < array[k].width; x++) {
 						// top & bottom of room
 						if(y === 0 || y === array[k].height - 1) {
 							if(this.checkDoorPath(x + offsetX, y + offsetY, grid)) {
 								grid[y + offsetY][x + offsetX] = new Door(x + offsetX, y + offsetY);
+								array[k].doorLocationX = x + offsetX;
+								array[k].doorLocationY = y + offsetY;
 								counter++;
-								break midArray;
+								break MIDARRAY;
 							}
 							
 						}
@@ -220,15 +225,17 @@ var GameSpace = (function() {
 						else if(x === 0 || x === array[k].width - 1) {
 							if(this.checkDoorPath(x + offsetX, y + offsetY, grid)) {
 								grid[y + offsetY][x + offsetX] = new Door(x + offsetX, y + offsetY);
+								array[k].doorLocationX = x + offsetX;
+								array[k].doorLocationY = y + offsetY;
 								counter++;
-								break midArray;
+								break MIDARRAY;
 							}
 						}
 						
 					}
 				}
 			}
-			console.log(counter);
+			// console.log(counter);
 			if(counter === array.length) {
 				return true;
 			}
@@ -238,48 +245,89 @@ var GameSpace = (function() {
 
 		}
 
-		this.randomRooms = function(quantity) {
-			var i = 0;
-			var minRoomDimension = 4;
-			var maxRoomDimension = 10;
-			// create a temp map to check for overlap & door problems
-			var tempMap = this.map;
-			roomList = [];
+		this.cloneMap = function() {
+			var temp = [];
+			for(var i = 0; i < this.map.length; i++) {
+				// console.log(this.map[i].clone());
+				temp.push(this.map[i].clone());
+			}
+			return temp;
+		}
 
+		// used to keep track of rooms for each level so they can be used in various ways
+		this.roomList;
+
+		// used to darken rooms upon level creations & lighten them upon character entering, also sets monsters in room to attack. True lightens, false darkens
+		this.popRoom = function(trueFalse, room) {
+			// console.log(trueFalse, 'wtf');
+			console.log(room.upLeftCornerY);
+			for(var y = room.upLeftCornerY + 1; y < room.height + room.upLeftCornerY -1; y++) {
+				for(var x = room.upLeftCornerX + 1; x < room.width + room.upLeftCornerX -1; x++) {
+					if(trueFalse) {
+						console.log(pos([x, y]));
+						$(pos([x, y])).removeClass("hidden");
+					}
+					else {
+						console.log('something');
+						$(pos([x, y])).addClass("hidden");
+					}
+				}
+			}
+		}
+
+		// hides unopened rooms
+		this.darkenRooms = function(array) {
+			// console.log(array);
+			for(var i = 0; i < array.length; i++) {
+				// console.log(array[i]);
+				this.popRoom(false, array[i]);
+			}
+		}
+
+		this.randomRooms = function(quantity) {
+			var minRoomDimension = 4;
+			var maxRoomDimension = 11;
+			// create a temp map to check for overlap & door problems
+			var tempMap = this.cloneMap();
+			var tempRoomList = [];
+
+			var i = 0;
 			while (i < quantity) {
-				var centerX = Math.floor(Math.random()*(this.columns - maxRoomDimension * 1.5) + maxRoomDimension) 
-				var centerY = Math.floor(Math.random()*(this.rows - maxRoomDimension * 1.5) + maxRoomDimension)
+				var centerX = Math.floor(Math.random()*(this.columns - maxRoomDimension) + maxRoomDimension/2) 
+				var centerY = Math.floor(Math.random()*(this.rows - maxRoomDimension) + maxRoomDimension/2)
 				var width = Math.floor(Math.random() * (maxRoomDimension - minRoomDimension) + minRoomDimension)
 				var height = Math.floor(Math.random() * (maxRoomDimension - minRoomDimension) + minRoomDimension)
+
 				var tempRoom = new Room(centerX, centerY, width, height)
 				// this.createRoom(tempRoom);
 				// i++;
 				
+				// this appears to be effecting this.map. I have no idea how it would be effecting tempRoom since it's a local variable.
 				if(this.roomOverlapCheck(tempRoom, tempMap)) {
-					roomList.push(tempRoom);
+					tempRoomList.push(tempRoom);
 					this.createRoom(tempRoom, tempMap);
 					i++;
 				}
 			}
 
-			// console.log(tempMap);
-			console.log(roomList);
-			console.log();
-			console.log();
-			console.log();
-			console.log();
+			// console.log("tempMap: ", tempMap);
+			// console.log(tempRoomList);
 			
-			if(this.doorsUpdateIfPossible(roomList, tempMap)) {
-				for(var j = 0; j < roomList.length; j++) {
-					this.createRoom(j);
+
+			if(this.doorsUpdateIfPossible(tempRoomList, tempMap)) {
+				for(var j = 0; j < tempRoomList.length; j++) {
+					// console.log(tempRoomList[j]);
+					this.createRoom(tempRoomList[j], this.map);
 				}
-				this.doorsUpdateIfPossible(roomList, this.map);
+				this.doorsUpdateIfPossible(tempRoomList, this.map);
 			}
 			else {
-				return this.randomRooms;
+				return this.randomRooms(quantity);
 			}
 
-			// for(var j = 0; j < roomList.length; j++) {
+			this.roomList = tempRoomList.clone();
+
+			// for(var j = 0; j < tempRoomList.length; j++) {
 			// 		this.createRoom(j);
 			// }
 
@@ -288,17 +336,16 @@ var GameSpace = (function() {
 		}
 
 		this.createTerrain = function() {
-			var minRoomDimension = 4;
-			var maxRoomDimension = 8;
 			// creates walls on outer edge of map
 			var outerWalls = new Room(Math.floor(currentLevel.columns/2), Math.floor(currentLevel.rows/2), currentLevel.columns, currentLevel.rows)
 
-			this.createRoom(outerWalls);
+			this.createRoom(outerWalls, this.map);
 
-			// creates random rooms on map
-			this.randomRooms(Math.ceil(this.columns/2));
-			 
+			// Creates random rooms on map. DOES NOT SCALE WITH SIZE OF LEVEL leads to infinite loops on smaller levels.
+			this.randomRooms(Math.ceil(Math.sqrt(this.columns*this.rows)/1.5));
+			// console.log(Math.sqrt(this.columns*this.rows)/1.5);
 
+			
 		}
 
 		this.createMonsters = function(quantity) {
@@ -321,6 +368,7 @@ var GameSpace = (function() {
 			this.map[rogue.y][rogue.x] = rogue;
 		};
 
+		// Currently works on doors and dots. Could potentially handle items and stairs with conditional statements.
 		this.updateDisplay = function(obj1, obj2) {
 			$(pos(obj1.location())).text(obj1.text);
 			$(pos(obj2.location())).text(obj2.text);
@@ -370,11 +418,13 @@ var GameSpace = (function() {
 
 	};
 // random map generation code
-	var Room = function(xCenter, yCenter, width, height) {
+	var Room = function(xCenter, yCenter, width, height, doorLocationX, doorLocationY) {
 		this.xCenter = xCenter;
 		this.yCenter = yCenter;
 		this.width = width;
 		this.height = height;	
+		this.doorLocationX = doorLocationX || null;
+		this.doorLocationY = doorLocationY || null;
 		this.upLeftCornerX = this.xCenter - Math.floor(this.width/2);
 		this.upLeftCornerY = this.yCenter - Math.floor(this.height/2)
 	}
@@ -468,7 +518,7 @@ var GameSpace = (function() {
 // everything else
 	// create local 'globals'
 	var currentLevel = new Level(60, 40);
-	var rogue = new Character(Math.floor(currentLevel.columns/2), Math.floor(currentLevel.rows/2));
+	var rogue = new Character(1, 1);
 	// var monsterList = []
 
 	var initialize = function() {
@@ -476,8 +526,10 @@ var GameSpace = (function() {
 		currentLevel.createMap();
 		currentLevel.createTerrain();
 		currentLevel.placeCharacter();
-		currentLevel.createMonsters(10);
+		currentLevel.createMonsters(30);
 		currentLevel.drawMap();
+		// console.log(currentLevel.roomList);
+		currentLevel.darkenRooms(currentLevel.roomList);
 		
 	}
 
@@ -490,6 +542,19 @@ var GameSpace = (function() {
 
 })();
 
+Object.prototype.clone = function() {
+	var newObj = (this instanceof Array) ? [] : {};
+		for (i in this) {
+			if (i == 'clone') continue;
+			if (this[i] && typeof this[i] == "object") {
+			  newObj[i] = this[i].clone();
+			} 
+			else {
+				newObj[i] = this[i]
+			}
+		} 
+	return newObj;
+};
 
 
 
