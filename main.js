@@ -15,6 +15,14 @@
 
  */
 
+/* copy-bin:
+else if (checkNextTile(horz, vert) === 'door'){
+	currentLevel.updateRogue(horz, vert);
+	addMessage("You kick down the door. A loud noise reverberates throughout the dungeon.")
+}
+
+*/
+
 
 var GameSpace = (function() {
 // helper funcitons
@@ -28,119 +36,95 @@ var GameSpace = (function() {
 	}
 
 	var checkNextTile = function(horz, vert) {
-		if(currentLevel.map[rogue.y + vert][rogue.x + horz].impassable) {
-			return 'impassable'
+		var nextTile = currentLevel.map[rogue.y + vert][rogue.x + horz];
+		if (nextTile.monster) {
+			return "monster";
 		}
-		else if(currentLevel.map[rogue.y + vert][rogue.x + horz].monster) {
-			return 'monster'
+		else if(nextTile.impassable) {
+			return "impassable";
+		}
+		else if(nextTile.door) {
+			return "door";
+		}
+		else {
+			return 'empty';
 		}
 	}
 
 	var keyHandler = function(keyCode) {
-			// "right = l"
-			if(keyCode === 108) {
-				var horz = 1
-				var vert = 0
-				if(checkNextTile(horz, vert) === 'impassable') {
-					addMessage("You shall not pass!")
-				}
-				// else if (checkNextTile(horz, vert) === 'monster') {
-				// 	// call a combat function
-				// }
-				else {
-					currentLevel.updateRogue(horz, vert);
-				}
-				
+		var horz;
+		var vert;
+		// "right = l"
+		if(keyCode === 108) {
+			horz = 1
+			vert = 0
+		}
+		// "left = h"
+		else if(keyCode === 104) {
+			horz = -1
+			vert = 0
+		}
+		// "down = j"
+		else if(keyCode === 106) {
+			horz = 0
+			vert = 1
+		}
+		// "up = k"
+		else if(keyCode === 107) {
+			horz = 0
+			vert = -1
+		}
+		// "upright = u"
+		else if(keyCode === 117) {
+			horz = 1
+			vert = -1
+		}
+		// "upleft = y"
+		else if(keyCode === 121) {
+			horz = -1
+			vert = -1
+		}
+		// "downright = n"
+		else if(keyCode === 110) {
+			horz = 1
+			vert = 1
+		}
+		// "downleft = b"
+		else if(keyCode === 98) {
+			horz = -1
+			vert = 1
+		}
+
+		if(checkNextTile(horz, vert) === 'impassable') {
+				addMessage("You shall not pass!")
 			}
-			// "left = h"
-			else if(keyCode === 104) {
-				var horz = -1
-				var vert = 0
-				if(checkNextTile(horz, vert) === 'impassable') {
-					addMessage("You shall not pass!")
-				}
-				else {
-					currentLevel.updateRogue(horz, vert);
-				}
-			}
-			// "down = j"
-			else if(keyCode === 106) {
-				var horz = 0
-				var vert = 1
-				if(checkNextTile(horz, vert) === 'impassable') {
-					addMessage("You shall not pass!")
-				}
-				else {
-					currentLevel.updateRogue(horz, vert);
-				}
-			}
-			// "up = k"
-			else if(keyCode === 107) {
-				var horz = 0
-				var vert = -1
-				if(checkNextTile(horz, vert) === 'impassable') {
-					addMessage("You shall not pass!")
-				}
-				else {
-					currentLevel.updateRogue(horz, vert);
-				}
-			}
-			// "upright = u"
-			else if(keyCode === 117) {
-				var horz = 1
-				var vert = -1
-				if(checkNextTile(horz, vert) === 'impassable') {
-					addMessage("You shall not pass!")
-				}
-				else {
-					currentLevel.updateRogue(horz, vert);
-				}
-			}
-			// "upleft = y"
-			else if(keyCode === 121) {
-				var horz = -1
-				var vert = -1
-				if(checkNextTile(horz, vert) === 'impassable') {
-					addMessage("You shall not pass!")
-				}
-				else {
-					currentLevel.updateRogue(horz, vert);
-				}
-			}
-			// "downright = n"
-			else if(keyCode === 110) {
-				var horz = 1
-				var vert = 1
-				if(checkNextTile(horz, vert) === 'impassable') {
-					addMessage("You shall not pass!")
-				}
-				else {
-					currentLevel.updateRogue(horz, vert);
-				}
-			}
-			// "downleft = b"
-			else if(keyCode === 98) {
-				var horz = -1
-				var vert = 1
-				if(checkNextTile(horz, vert) === 'impassable') {
-					addMessage("You shall not pass!")
-				}
-				else {
-					currentLevel.updateRogue(horz, vert);
-				}
-			}
-			
-		}	
+		else if (checkNextTile(horz, vert) === 'monster') {
+			// call a combat function
+		}
+		else if (checkNextTile(horz, vert) === 'dot') {
+			currentLevel.updateRogue(horz, vert);
+		}
+		else if (checkNextTile(horz, vert) === 'door'){
+			currentLevel.emptyTile(rogue.x + horz, rogue.y + vert);
+			currentLevel.findRoomLightRoom(rogue.x + horz, rogue.y + vert, currentLevel.roomList);
+			// update dungeon. Takes 2 turns to kick down a door.
+			addMessage("You kick down the door. A loud noise reverberates throughout the dungeon.")
+
+		}
+		else if (checkNextTile(horz, vert) === 'empty'){
+			currentLevel.updateRogue(horz, vert);
+		}
+		
+	}	
 
 // level and map related code
 	var Level = function(columns, rows) {
 		this.rows = rows;
 		this.columns = columns;
 		this.map = [];
-		// this.roomList = [];
 
-		this.tileMatrixGenerator = function() {
-		// console.log(this.rows)
+		this.createMap = function () {
+			// console.log(this.rows)
 			for (var r = 0; r < this.rows; r++) {
 				var row = [];
 				for(var c = 0; c < this.columns; c++) {
@@ -151,9 +135,14 @@ var GameSpace = (function() {
 			// console.log(this.map);
 		};
 
-		this.createMap = function () {
-			this.tileMatrixGenerator();
-		};
+		this.cloneMap = function() {
+			var temp = [];
+			for(var i = 0; i < this.map.length; i++) {
+				// console.log(this.map[i].clone());
+				temp.push(this.map[i].clone());
+			}
+			return temp;
+		}
 
 		this.createRoom = function(room, grid) {
 			// can delte the 2 lines below and just use UpLeftCornerX & Y.
@@ -245,14 +234,6 @@ var GameSpace = (function() {
 
 		}
 
-		this.cloneMap = function() {
-			var temp = [];
-			for(var i = 0; i < this.map.length; i++) {
-				// console.log(this.map[i].clone());
-				temp.push(this.map[i].clone());
-			}
-			return temp;
-		}
 
 		// used to keep track of rooms for each level so they can be used in various ways
 		this.roomList;
@@ -260,7 +241,7 @@ var GameSpace = (function() {
 		// used to darken rooms upon level creations & lighten them upon character entering, also sets monsters in room to attack. True lightens, false darkens
 		this.popRoom = function(trueFalse, room) {
 			// console.log(trueFalse, 'wtf');
-			console.log(room.upLeftCornerY);
+			// console.log(room.upLeftCornerY);
 			for(var y = room.upLeftCornerY + 1; y < room.height + room.upLeftCornerY -1; y++) {
 				for(var x = room.upLeftCornerX + 1; x < room.width + room.upLeftCornerX -1; x++) {
 					if(trueFalse) {
@@ -268,10 +249,20 @@ var GameSpace = (function() {
 						$(pos([x, y])).removeClass("hidden");
 					}
 					else {
-						console.log('something');
+						// console.log('something');
 						$(pos([x, y])).addClass("hidden");
 					}
 				}
+			}
+		}
+
+		// Iterates through an array of room objects and finds a door with matching location. Calls popRoom to light room after door open. Location taken from keyhandler.
+		this.findRoomLightRoom = function(x, y, array) {
+			for(var i = 0; i < array.length; i++) {
+				 if(array[i].doorLocationX === x && array[i].doorLocationY === y) {
+				 	this.popRoom(true, array[i]);
+				 	break;
+				 }
 			}
 		}
 
@@ -326,13 +317,6 @@ var GameSpace = (function() {
 			}
 
 			this.roomList = tempRoomList.clone();
-
-			// for(var j = 0; j < tempRoomList.length; j++) {
-			// 		this.createRoom(j);
-			// }
-
-			
-			
 		}
 
 		this.createTerrain = function() {
@@ -348,6 +332,7 @@ var GameSpace = (function() {
 			
 		}
 
+		// this populates monsters on map. Currently only populates rats. Needs to work for other monsters and only populate in rooms.
 		this.createMonsters = function(quantity) {
 			var i = 0;
 			while (i < quantity) {
@@ -358,7 +343,6 @@ var GameSpace = (function() {
 					// console.log('thing')
 					currentLevel.map[randomY][randomX] = randomRat;
 					i++;
-					
 				}
 
 			}
@@ -371,22 +355,29 @@ var GameSpace = (function() {
 		// Currently works on doors and dots. Could potentially handle items and stairs with conditional statements.
 		this.updateDisplay = function(obj1, obj2) {
 			$(pos(obj1.location())).text(obj1.text);
-			$(pos(obj2.location())).text(obj2.text);
 			$(pos(obj1.location())).removeClass();
-			$(pos(obj2.location())).removeClass();
-			$(pos(obj2.location())).addClass(obj2.class + " tile");
 			$(pos(obj1.location())).addClass(obj1.class + " tile");
-
+			if(arguments.length === 2) {
+				$(pos(obj2.location())).addClass(obj2.class + " tile");
+				$(pos(obj2.location())).removeClass();
+				$(pos(obj2.location())).text(obj2.text);
+			}
 		};
 
-		this.updateRogue = function(horz, vert, obj1, obj2) {
+		// replaces object in map with an empty tile
+		this.emptyTile = function(x, y) {
+			this.map[y][x] = new Tile(x, y);
+			this.updateDisplay(this.map[y][x]);
+		}
+
+		this.updateRogue = function(horz, vert) {
 			var tempTile = new Tile(rogue.x , rogue.y); 
-			console.log(tempTile.location());
+			// console.log(tempTile.location());
 			rogue.x += horz;
 			rogue.y += vert;
 			this.map[rogue.y][rogue.x] = rogue;
 			this.map[rogue.y - vert][rogue.x - horz] = tempTile 
-			console.log(rogue.location())
+			// console.log(rogue.location())
 			// this.drawMap();
 			this.updateDisplay(rogue, tempTile)
 		};
