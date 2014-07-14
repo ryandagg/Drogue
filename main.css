@@ -45,7 +45,7 @@ td {
 }
 
 .wall {
-  color: #aaa;
+  color: #777;
   padding-left: 0.05em;
   font-size: 1.7em;
 }
@@ -63,6 +63,7 @@ td {
 }
 
 .door {
-  font-size: 1.8em;
+  font-size: 1.6em;
   padding-left: 0.03em;
+  color: brown;
 }

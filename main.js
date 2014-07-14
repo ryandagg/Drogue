@@ -100,6 +100,9 @@ var GameSpace = (function() {
 			}
 		else if (checkNextTile(horz, vert) === 'monster') {
 			// call a combat function
+			// 
+			// updateRogue is just a temporary solution
+			currentLevel.updateRogue(horz, vert);
 		}
 		else if (checkNextTile(horz, vert) === 'dot') {
 			currentLevel.updateRogue(horz, vert);
@@ -142,6 +145,14 @@ var GameSpace = (function() {
 				temp.push(this.map[i].clone());
 			}
 			return temp;
+		}
+
+		this.eachTileInRoom = function(room, func) {
+			for(var y = room.upLeftCornerY + 1; y < room.height + room.upLeftCornerY -1; y++) {
+				for(var x = room.upLeftCornerX + 1; x < room.width + room.upLeftCornerX -1; x++) {
+					func(x, y);
+				}
+			}
 		}
 
 		this.createRoom = function(room, grid) {
@@ -236,33 +247,54 @@ var GameSpace = (function() {
 
 
 		// used to keep track of rooms for each level so they can be used in various ways
-		this.roomList;
+		this.roomList = null;
 
-		// used to darken rooms upon level creations & lighten them upon character entering, also sets monsters in room to attack. True lightens, false darkens
+		// used to darken rooms upon level creations & lighten them upon character entering, also sets monsters in room to attack. True lightens, false darkens.
 		this.popRoom = function(trueFalse, room) {
 			// console.log(trueFalse, 'wtf');
 			// console.log(room.upLeftCornerY);
-			for(var y = room.upLeftCornerY + 1; y < room.height + room.upLeftCornerY -1; y++) {
-				for(var x = room.upLeftCornerX + 1; x < room.width + room.upLeftCornerX -1; x++) {
-					if(trueFalse) {
-						console.log(pos([x, y]));
-						$(pos([x, y])).removeClass("hidden");
-					}
-					else {
-						// console.log('something');
-						$(pos([x, y])).addClass("hidden");
-					}
+			this.eachTileInRoom(room, function(x, y) {
+				// console.log(arguments);
+				if(trueFalse) {
+					// console.log(pos([x, y]));
+					$(pos([x, y])).removeClass("hidden");
 				}
-			}
+				else {
+					// console.log('something');
+					$(pos([x, y])).addClass("hidden");
+				}
+			})
 		}
 
 		// Iterates through an array of room objects and finds a door with matching location. Calls popRoom to light room after door open. Location taken from keyhandler.
 		this.findRoomLightRoom = function(x, y, array) {
+			var poppedIndex;
+			var poppedRoom;
+			var that = this;
 			for(var i = 0; i < array.length; i++) {
-				 if(array[i].doorLocationX === x && array[i].doorLocationY === y) {
+				if(array[i].doorLocationX === x && array[i].doorLocationY === y) {
 				 	this.popRoom(true, array[i]);
-				 	break;
-				 }
+				 	poppedIndex = i;
+				 	poppedRoom = array[i];
+				}
+			}
+			
+			// checks for nested rooms and darkens them again.
+			for(var j = 0; j < array.length; j++) {
+				if (poppedIndex !== j) {
+					// console.log("i/j wtf");
+					this.eachTileInRoom(poppedRoom, function(x, y) {
+						// console.log("x: " + x);
+						// console.log("y: " + y);
+						if(array[j].xCenter === x && array[j].yCenter === y) {
+							console.log(array[j]);
+							console.log("x: " + x);
+							console.log("y: " + y);
+							// console.log("wtf");
+							that.popRoom(false, array[j]);
+						}
+					})
+				}
 			}
 		}
 
