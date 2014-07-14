@@ -133,6 +133,7 @@ var GameSpace = (function() {
 		this.rows = rows;
 		this.columns = columns;
 		this.map = [];
+		// this.roomList = [];
 
 		this.tileMatrixGenerator = function() {
 		// console.log(this.rows)
@@ -152,7 +153,7 @@ var GameSpace = (function() {
 
 		this.createRoom = function(room) {
 			var offsetX = room.xCenter - Math.floor(room.width/2);
-			var offsetY = room.yCenter - Math.floor(room.height/2)
+			var offsetY = room.yCenter - Math.floor(room.height/2);
 
 			for(var i = 0; i < room.height; i++) {
 				for (var j = 0; j < room.width; j++) {
@@ -167,31 +168,135 @@ var GameSpace = (function() {
 					
 				}
 			}
-			console.log(this.map[16][27])
+			
+		}
+
+		// Returns true/false and is used in randomRooms functions to detect if a new room will overlap an existing one.
+		this.roomOverlapCheck = function(room, grid) {
+			for(var y = room.upLeftCornerY; y < room.upLeftCornerY + room.height; y++) {
+				for(var x = room.upLeftCornerX; x < room.upLeftCornerX + room.width; x++) {
+					if(grid[y][x].class === 'wall') {
+						return false
+					}
+				}
+			}
+			return true;
+		}
+
+		// checks if spaces to left/right or up/down from coordinate are empty returns, true or false
+		this.checkDoorPath = function(x, y, grid) {
+			// check left and right
+			if (grid[y][x - 1].class === 'dot' && grid[y][x + 1].class === 'dot') {
+				console.log("leftright");
+				return true;
+			}
+			else if (grid[y - 1][x].class === 'dot' && grid[y + 1][x].class === 'dot') {
+				console.log("updown");
+				return true;
+			}
+			return false;
+		}
+
+		// Takes an array of rooms and checks if doors can be placed on each room so that there are no unreachable rooms.
+		this.doorsUpdateIfPossible = function(array, grid) {
+			// tempMap.randomRooms(Math.ceil(this.columns/2));
+			var counter = 0;
+			var wantToBreak = false;
+			for(var k = 0; k < array.length; k++) {
+				var offsetX = array[k].xCenter - Math.floor(array[k].width/2);
+				var offsetY = array[k].yCenter - Math.floor(array[k].height/2);
+				midArray: for(var y = 0; y < array[k].height; y++) {
+					for (var x = 0; x < array[k].width; x++) {
+						// top & bottom of room
+						if(y === 0 || y === array[k].height - 1) {
+							if(this.checkDoorPath(x + offsetX, y + offsetY, grid)) {
+								grid[y + offsetY][x + offsetX] = new Door(x + offsetX, y + offsetY);
+								counter++;
+								break midArray;
+							}
+							
+						}
+						// left & right of room
+						else if(x === 0 || x === array[k].width - 1) {
+							if(this.checkDoorPath(x + offsetX, y + offsetY, grid)) {
+								grid[y + offsetY][x + offsetX] = new Door(x + offsetX, y + offsetY);
+								counter++;
+								break midArray;
+							}
+						}
+						
+					}
+				}
+			}
+			console.log(counter);
+			if(counter === array.length) {
+				return true;
+			}
+			else {
+				return false;
+			}
+
+		}
+
+		this.randomRooms = function(quantity) {
+			var i = 0;
+			var minRoomDimension = 4;
+			var maxRoomDimension = 10;
+			// create a temp map to check for overlap & door problems
+			var tempMap = this.map;
+			roomList = [];
+
+			while (i < quantity) {
+				var centerX = Math.floor(Math.random()*(this.columns - maxRoomDimension * 1.5) + maxRoomDimension) 
+				var centerY = Math.floor(Math.random()*(this.rows - maxRoomDimension * 1.5) + maxRoomDimension)
+				var width = Math.floor(Math.random() * (maxRoomDimension - minRoomDimension) + minRoomDimension)
+				var height = Math.floor(Math.random() * (maxRoomDimension - minRoomDimension) + minRoomDimension)
+				var tempRoom = new Room(centerX, centerY, width, height)
+				// this.createRoom(tempRoom);
+				// i++;
+				
+				if(this.roomOverlapCheck(tempRoom, tempMap)) {
+					roomList.push(tempRoom);
+					this.createRoom(tempRoom, tempMap);
+					i++;
+				}
+			}
+
+			// console.log(tempMap);
+			console.log(roomList);
+			console.log();
+			console.log();
+			console.log();
+			console.log();
+			
+			if(this.doorsUpdateIfPossible(roomList, tempMap)) {
+				for(var j = 0; j < roomList.length; j++) {
+					this.createRoom(j);
+				}
+				this.doorsUpdateIfPossible(roomList, this.map);
+			}
+			else {
+				return this.randomRooms;
+			}
+
+			// for(var j = 0; j < roomList.length; j++) {
+			// 		this.createRoom(j);
+			// }
+
+			
+			
 		}
 
 		this.createTerrain = function() {
 			var minRoomDimension = 4;
 			var maxRoomDimension = 8;
+			// creates walls on outer edge of map
 			var outerWalls = new Room(Math.floor(currentLevel.columns/2), Math.floor(currentLevel.rows/2), currentLevel.columns, currentLevel.rows)
+
 			this.createRoom(outerWalls);
 
-			// creates the edge of map walls
-			// for(var i = 0; i < this.map.length; i++) {
-			// 	for (var j = 0; j < this.map[0].length; j++) {
-			// 		if(i === 0 || i === this.rows - 1) {
-			// 			this.map[i][j] = new Wall([i, j]);
-			// 		}
-			// 		else if(j === 0 || j === this.columns - 1) {
-			// 			this.map[i][j] = new Wall(i, j);
-			// 		}
-					
-			// 	}
-			// }
-
-			var firstRoom = new Room (Math.floor(currentLevel.columns/2), Math.floor(currentLevel.rows/2), Math.floor(Math.random() * (maxRoomDimension -minRoomDimension) + minRoomDimension), Math.floor(Math.random() * maxRoomDimension + minRoomDimension) );
-			this.createRoom(firstRoom);
-			// console.log(firstRoom);
+			// creates random rooms on map
+			this.randomRooms(Math.ceil(this.columns/2));
 			 
 
 		}
@@ -269,7 +374,9 @@ var GameSpace = (function() {
 		this.xCenter = xCenter;
 		this.yCenter = yCenter;
 		this.width = width;
-		this. height = height;	
+		this.height = height;	
+		this.upLeftCornerX = this.xCenter - Math.floor(this.width/2);
+		this.upLeftCornerY = this.yCenter - Math.floor(this.height/2)
 	}
 
 // terrain related code
@@ -301,14 +408,22 @@ var GameSpace = (function() {
 	Wall.prototype = new Terrain();
 	Wall.prototype.constructor = Wall;
 
+	var Door = function(x, y) {
+		Tile.call(this, x, y);
+		this.text = "+"
+		this.class = "door";
+		this.door = true;
+	}
+
+	Door.prototype = new Terrain();
+	Door.prototype.constructor = Door;
+
 
 // character related code
 	var Character = function(x, y) {
 		Tile.call(this, x, y);
 		this.text = "@"
 		this.class = "character"
-		// this.x = Math.floor(currentLevel.columns/2);
-		// this.y = Math.floor(currentLevel.rows/2)
 		this.health = 100;
 		this.attack = 100;
 		this.defense = 100;
@@ -354,7 +469,7 @@ var GameSpace = (function() {
 	// create local 'globals'
 	var currentLevel = new Level(60, 40);
 	var rogue = new Character(Math.floor(currentLevel.columns/2), Math.floor(currentLevel.rows/2));
-	var monsterList = []
+	// var monsterList = []
 
 	var initialize = function() {
 		// console.log("initialize called");
@@ -369,7 +484,7 @@ var GameSpace = (function() {
 	return {
 		initialize: initialize,
 		rogue: rogue,
-		currentLevel: currentLevel,
+		currentLevel: currentLevel,	
 		keyHandler: keyHandler,
 	}
 

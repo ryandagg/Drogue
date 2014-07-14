@@ -13,6 +13,16 @@ $tileHeight: $gameHeight/40*1.1;
 
 }
 
+#messages {
+	// display: block;
+	height: 120px;
+	width: $gameHeight;
+	background-color: #eee;
+	color: black;
+	overflow-y: scroll;
+	margin: 0.5% 0 0 2%;
+
+}
 
 
 table {
@@ -32,22 +42,14 @@ td {
 .tile {
 	width: $tileWidth;
 	height: $tileHeight;
+	-webkit-box-sizing: border-box; 
 	box-sizing: border-box;
 	overflow: hidden;
-	position: relative;
+	// position: relative;
 }
 
 
-#messages {
-	// display: block;
-	height: 120px;
-	width: $gameHeight;
-	background-color: #eee;
-	color: black;
-	overflow-y: scroll;
-	margin: 2% 0 2% 2%;
 
-}
 
 
 // specific tiles
@@ -77,4 +79,12 @@ td {
 	padding-left: 0.07em;
 	line-height: 0.9;
 	color: #996600
+}
+
+.door {
+	font-size: 1.8em;
+	// line-height: 1.4;
+	// padding-bottom: 2em;
+	padding-left: 0.03em;
+
 }

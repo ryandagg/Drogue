@@ -3,6 +3,15 @@
   margin: 2%;
 }
 
+#messages {
+  height: 120px;
+  width: 1000px;
+  background-color: #eee;
+  color: black;
+  overflow-y: scroll;
+  margin: 0.5% 0 0 2%;
+}
+
 table {
   background: black;
   color: #fff;
@@ -20,18 +29,9 @@ td {
 .tile {
   width: 16.66667px;
   height: 27.5px;
+  -webkit-box-sizing: border-box;
   box-sizing: border-box;
   overflow: hidden;
-  position: relative;
-}
-
-#messages {
-  height: 120px;
-  width: 1000px;
-  background-color: #eee;
-  color: black;
-  overflow-y: scroll;
-  margin: 2% 0 2% 2%;
 }
 
 .character {
@@ -56,4 +56,9 @@ td {
   padding-left: 0.07em;
   line-height: 0.9;
   color: #996600;
+}
+
+.door {
+  font-size: 1.8em;
+  padding-left: 0.03em;
 }
