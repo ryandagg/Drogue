@@ -42,9 +42,10 @@ td {
 .tile {
 	width: $tileWidth;
 	height: $tileHeight;
-	-webkit-box-sizing: border-box; 
-	box-sizing: border-box;
-	overflow: hidden;
+	// -webkit-box-sizing: border-box; 
+	// box-sizing: border-box;
+	position: relative;
+	// overflow: hidden;
 	// position: relative;
 }
 
@@ -88,4 +89,20 @@ td {
 	padding-left: 0.03em;
 	color: brown;
 
+}
+
+// click to inspect popup
+.text-popup {
+	// color: black;
+	width: 5%;
+	font-size: 1.4em;
+	position: absolute;
+	z-index: 2;
+	background-color: black;
+	// border-radius: 10px;
+}
+
+.close-popup {
+	color: blue;
+	background-color: white;
 }

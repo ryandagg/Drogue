@@ -14,6 +14,7 @@
 		<div>
 
 			<div id="game-window">
+			<!-- <div class='tile'>something</div> -->
 				<!-- jQuery appends here -->
 			</div>
 		</div>
@@ -33,7 +34,7 @@
 		        <tr> 
 		        	{{#this}}
 	            	<td>
-	            		<div class="tile {{class}}" id='column-{{columnCounter}}-row-{{rowCounter}}'>{{text}}</div>
+	            		<div class="tile {{class}}" id='{{columnCounter}}-{{rowCounter}}'>{{text}}</div>
             		</td> 
 		            {{/this}}
 		        </tr> 

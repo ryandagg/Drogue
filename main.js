@@ -1,6 +1,7 @@
 /* Guidelines from Raine:
 -all functions as methods
 -don't make children responsible for parents 
+-if a funciton is passed a single type of object it should probably be made a method under the class of that object type
 
 */
 
@@ -26,10 +27,53 @@ else if(checkNextTile(horz, vert) === 'door'){
 
 var GameSpace = (function() {
 // helper funcitons
+
 	// formats location of object to reference tile id
 	var pos = function(loc) {
-		return "#column-" + String(loc[0]) + "-row-" + String(loc[1]);
+		return "#" + String(loc[0]) + "-" + String(loc[1]);
 	};
+
+	// does the oposite of pos(). Looks for a number in a string, then checks if there is one immedidately proceeding. Repeats.
+	var reversePos = function(str) {
+		var x = str[0]
+		var y = ''
+		if(!isNaN(str[1])) {
+			x += str[1];
+		}
+
+		if(!isNaN(str[str.length - 2])) {
+			y += str[str.length - 2];
+			y += str[str.length - 1];
+		}
+		else {
+			y += str[str.length - 1];
+		}
+		return [Number(x), Number(y)];
+	}
+
+	var clone = function clone(iterable) {
+		var newObj = (iterable instanceof Array) ? [] : {};
+			for (i in iterable) {
+				if(i == 'clone') continue;
+				if(iterable[i] && typeof iterable[i] == "object") {
+				  newObj[i] = clone(iterable[i]);
+				} 
+				else {
+					newObj[i] = iterable[i]
+				}
+			} 
+		return newObj;
+	};
+
+	var clickText = function(id) {
+		var loc = reversePos(id);
+		// console.log("loc: ", loc);
+		var obj = currentLevel.map[loc[1]][loc[0]];
+		$("#" + id).parent().append(
+			"<div class='text-popup'>" + obj.inspectText + "</br>" +
+				"<span class='close-popup'>close</span>" + 
+			"</div>");
+	}
 
 	var addMessage = function(text) {
 		$("#messages").prepend("<p>" + text + "</p>")
@@ -66,6 +110,7 @@ var GameSpace = (function() {
 		}
 	}
 
+	// todo put in character class
 	var keyHandler = function(keyCode) {
 		var horz;
 		var vert;
@@ -140,6 +185,7 @@ var GameSpace = (function() {
 		
 	}	
 
+	// todo put this in an actor class
 	var actorRegen = function(actor) {
 		if(actor.health < actor.maxHealth) {
 			actor.health += actor.maxHealth / actor.regenRate;
@@ -147,6 +193,7 @@ var GameSpace = (function() {
 		}
 	}
 
+	// todo 
 	var monsterTurn = function(monster) {
 		var tempMatrix = currentLevel.createPFMatrix(currentLevel.map);
 		// console.log(tempMatrix);
@@ -198,14 +245,11 @@ var GameSpace = (function() {
 	}
 
 	var attackRoll = function(attacker, defender) {
+
 		var toHitFactor = attacker.offense - defender.defense + 50;
 		var roll = Math.random() * 100;
-		if (roll < toHitFactor) {
-			return true;
-		}
-		else {
-			return false;
-		}
+
+		return roll < toHitFactor;
 	}
 
 	var combatHandler = function(attacker, defender) {
@@ -254,14 +298,14 @@ var GameSpace = (function() {
 			// console.log(this.map);
 		};
 
-		this.cloneMap = function() {
-			var temp = [];
-			for(var i = 0; i < this.map.length; i++) {
-				// console.log(this.map[i].clone());
-				temp.push(this.map[i].clone());
-			}
-			return temp;
-		}
+		// this.cloneMap = function() {
+		// 	var temp = [];
+		// 	for(var i = 0; i < this.map.length; i++) {
+		// 		// console.log(this.map[i].clone());
+		// 		temp.push(clone(this.map[i]));
+		// 	}
+		// 	return temp;
+		// }
 
 		this.eachTileInRoom = function(room, func) {
 			for(var y = room.upLeftCornerY + 1; y < room.height + room.upLeftCornerY -1; y++) {
@@ -421,7 +465,7 @@ var GameSpace = (function() {
 			var minRoomDimension = 4;
 			var maxRoomDimension = 11;
 			// create a temp map to check for overlap & door problems
-			var tempMap = this.cloneMap();
+			var tempMap = this.map.map(clone);
 			var tempRoomList = [];
 
 			var i = 0;
@@ -458,7 +502,7 @@ var GameSpace = (function() {
 				return this.randomRooms(quantity);
 			}
 
-			this.roomList = tempRoomList.clone();
+			this.roomList = clone(tempRoomList);
 		}
 
 		this.createTerrain = function() {
@@ -540,7 +584,9 @@ var GameSpace = (function() {
 
 			Handlebars.registerHelper("columnCounter", function() {
 				// counter++;
+				// console.log(counter);
 				return counter % that.columns;
+				
 				// console.log(that.columns);
 			})
 
@@ -591,6 +637,7 @@ var GameSpace = (function() {
 		this.text = "."
 		this.class = "dot"
 		this.impassable = false
+		this.inspectText = "A dank dungeon floor.";
 	}
 
 	Tile.prototype.location = function() {
@@ -608,6 +655,7 @@ var GameSpace = (function() {
 		this.text = "#"
 		this.class = "wall"
 		this.impassable = true;
+		this.inspectText = "A solid wall."
 	}
 
 	Wall.prototype = new Terrain();
@@ -618,6 +666,7 @@ var GameSpace = (function() {
 		this.text = "+"
 		this.class = "door";
 		this.door = true;
+		this.inspectText = "A door. I wonder what is on the other side.";
 	}
 
 	Door.prototype = new Terrain();
@@ -636,7 +685,7 @@ var GameSpace = (function() {
 		this.defense = 10;
 		this.maxDamage = 10;
 		this.damClump = 3;
-
+		this.inspectText = "A badass MFer.";
 	}
 
 	Character.prototype = new Tile();
@@ -668,6 +717,7 @@ var GameSpace = (function() {
 		this.defense = this.defenseBase/10;
 		this.maxDamage = this.maxDamageBase/10;
 		this.treasureQuality = 1;
+		this.inspectText = "A enormous, mangy rat. It looks hungry."
 
 	}
 
@@ -684,6 +734,7 @@ var GameSpace = (function() {
 		this.defense = this.defenseBase/8;
 		this.maxDamage = this.maxDamageBase/8;
 		this.treasureQuality = 2;
+		this.inspectText = "A short, reptilian humanoid. It walks on two legs and wants to stab you."
 	}
 
 	Kobold.prototype = new Monster();
@@ -717,32 +768,33 @@ var GameSpace = (function() {
 		initialize: initialize,
 		keyHandler: keyHandler,
 		rogue: rogue,
+		clickText: clickText,
 		currentLevel: currentLevel,
 	}
 
 })();
 
-Object.prototype.clone = function() {
-	var newObj = (this instanceof Array) ? [] : {};
-		for (i in this) {
-			if(i == 'clone') continue;
-			if(this[i] && typeof this[i] == "object") {
-			  newObj[i] = this[i].clone();
-			} 
-			else {
-				newObj[i] = this[i]
-			}
-		} 
-	return newObj;
-};
 
 
 
+// jquery event handlers
 $(document).on('ready', function() {
 	GameSpace.initialize();
 	// keyboard handler
 	$(document).keypress(function(e) {
 		// console.log("charCode: ", e.charCode);
 		GameSpace.keyHandler(e.charCode);
+	});
+
+	// click handler to inspect elements on map
+	// delegation on this IS NOT WORKING and no one knows why
+	$(document).on("click", ".tile", function() {
+		// console.log("tile click firing");
+		GameSpace.clickText($(this).attr("id"));
+		// console.log("clickText firing");
+	});
+
+	$(document).on("click", ".close-popup", function() {
+		$(".text-popup").remove();
 	})
 });
