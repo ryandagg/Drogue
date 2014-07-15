@@ -35,6 +35,32 @@ var GameSpace = (function() {
 		$("#messages").append("<p>" + text + "</p>")
 	}
 
+	var monsterTurn = function(monster) {
+		var tempMatrix = currentLevel.createPFMatrix(currentLevel.map);
+		// console.log(tempMatrix);
+		tempMatrix[monster.y][monster.x] = 0;
+		var grid = new PF.Grid(currentLevel.columns, currentLevel.rows, tempMatrix);
+		// var testPath = pathFinder.findPath(0, 0, 0, 1, grid);
+		// console.log(testPath);
+
+		var path = pathFinder.findPath(monster.x, monster.y, rogue.x, rogue.y, grid);
+		// console.log("path:", path);
+		if(path.length > 0) {
+			var horz = path[1][0];
+			var vert = path[1][1];
+			console.log("monster:", monster.x, monster.y);
+			console.log("horz: " + horz, "vert: " + vert);
+		}
+		
+	}
+	var turnHandler = function () {
+		totalTurns++;
+		for(var i = 0; i < monstersActive.length; i++) {
+			monsterTurn(monstersActive[i]);
+		}
+		// console.log(totalTurns);
+	}
+
 	var checkNextTile = function(horz, vert) {
 		var nextTile = currentLevel.map[rogue.y + vert][rogue.x + horz];
 		if (nextTile.monster) {
@@ -103,19 +129,18 @@ var GameSpace = (function() {
 			// 
 			// updateRogue is just a temporary solution
 			currentLevel.updateRogue(horz, vert);
-		}
-		else if (checkNextTile(horz, vert) === 'dot') {
-			currentLevel.updateRogue(horz, vert);
+			turnHandler();
 		}
 		else if (checkNextTile(horz, vert) === 'door'){
 			currentLevel.emptyTile(rogue.x + horz, rogue.y + vert);
 			currentLevel.findRoomLightRoom(rogue.x + horz, rogue.y + vert, currentLevel.roomList);
 			// update dungeon. Takes 2 turns to kick down a door.
 			addMessage("You kick down the door. A loud noise reverberates throughout the dungeon.")
-
+			turnHandler();
 		}
 		else if (checkNextTile(horz, vert) === 'empty'){
 			currentLevel.updateRogue(horz, vert);
+			turnHandler();
 		}
 		
 	}	
@@ -282,15 +307,13 @@ var GameSpace = (function() {
 			// checks for nested rooms and darkens them again.
 			for(var j = 0; j < array.length; j++) {
 				if (poppedIndex !== j) {
-					// console.log("i/j wtf");
 					this.eachTileInRoom(poppedRoom, function(x, y) {
 						// console.log("x: " + x);
 						// console.log("y: " + y);
-						if(array[j].xCenter === x && array[j].yCenter === y) {
-							console.log(array[j]);
-							console.log("x: " + x);
-							console.log("y: " + y);
-							// console.log("wtf");
+						if(array[j].upLeftCornerX === x && array[j].upLeftCornerY === y) {
+							// console.log(array[j]);
+							// console.log("x: " + x);
+							// console.log("y: " + y);
 							that.popRoom(false, array[j]);
 						}
 					})
@@ -353,31 +376,35 @@ var GameSpace = (function() {
 
 		this.createTerrain = function() {
 			// creates walls on outer edge of map
-			var outerWalls = new Room(Math.floor(currentLevel.columns/2), Math.floor(currentLevel.rows/2), currentLevel.columns, currentLevel.rows)
+			var outerWalls = new Room(Math.floor(currentLevel.columns/2), Math.floor(currentLevel.rows/2), currentLevel.columns, currentLevel.rows);
 
 			this.createRoom(outerWalls, this.map);
 
 			// Creates random rooms on map. DOES NOT SCALE WITH SIZE OF LEVEL leads to infinite loops on smaller levels.
 			this.randomRooms(Math.ceil(Math.sqrt(this.columns*this.rows)/1.5));
-			// console.log(Math.sqrt(this.columns*this.rows)/1.5);
+			// console.log(Math.sqrt(this.columns*this.rows)/1.5);	
+		};
 
-			
-		}
+		// THIS DOES NOTHING will eventually be called by createMonsters
+		this.selectRandomMonster = function() {
+			// do something;
+		};
 
 		// this populates monsters on map. Currently only populates rats. Needs to work for other monsters and only populate in rooms.
 		this.createMonsters = function(quantity) {
 			var i = 0;
+			var monster
 			while (i < quantity) {
 				var randomY = Math.floor(Math.random() * currentLevel.rows)
 				var randomX = Math.floor(Math.random() * currentLevel.columns)
 				var randomRat = new Rat(randomX, randomY);
 				if(currentLevel.map[randomY][randomX].class === 'dot') {
-					// console.log('thing')
 					currentLevel.map[randomY][randomX] = randomRat;
+					monstersActive.push(randomRat);
 					i++;
 				}
-
 			}
+			// console.log(monstersActive);
 		};
 
 		this.placeCharacter = function() {
@@ -438,6 +465,23 @@ var GameSpace = (function() {
 
 			$("#game-window").append(gameTemplate(that));
 		};
+
+		this.createPFMatrix = function(room) {
+			var matrix = [];
+			for (var y = 0; y < this.rows; y++) {
+				var row = [];
+				for(var x = 0; x < this.columns; x++) {
+					if(room[y][x].class === 'wall' || room[y][x].class === 'door') {
+						row.push(1);
+					}
+					else {
+						row.push(0);
+					}
+				}
+				matrix.push(row);
+			}
+			return matrix;
+		}
 
 	};
 // random map generation code
@@ -537,12 +581,31 @@ var GameSpace = (function() {
 
 	Rat.prototype = new Monster();
 	Rat.prototype.constructor = Rat;
+
+	var Kobold = function(x, y) {
+		Tile.call(this, x, y)
+		this.class = 'kobold'
+		this.text = 'k'
+		this.health = this.healthBase/8;
+		this.attack = this.attackBase/8;
+		this.defense = this.defenseBase/8;
+		this.damage = this.damageBase/8;
+		this.treasureQuality = 2;
+	}
+
+	Kobold.prototype = new Monster();
+	Kobold.prototype.constructor = Kobold;
 		
 // everything else
 	// create local 'globals'
 	var currentLevel = new Level(60, 40);
 	var rogue = new Character(1, 1);
-	// var monsterList = []
+	var monstersActive = [];
+	var monstersAvailable = []
+	var totalTurns = 0;
+	var pathFinder = new PF.AStarFinder({
+	    allowDiagonal: true
+	});
 
 	var initialize = function() {
 		// console.log("initialize called");
@@ -557,9 +620,8 @@ var GameSpace = (function() {
 	}
 
 	return {
+		GameSpace: GameSpace,
 		initialize: initialize,
-		rogue: rogue,
-		currentLevel: currentLevel,	
 		keyHandler: keyHandler,
 	}
 
