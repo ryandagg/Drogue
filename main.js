@@ -17,7 +17,7 @@
 
 /* copy-bin:
 else if (checkNextTile(horz, vert) === 'door'){
-	currentLevel.updateRogue(horz, vert);
+	currentLevel.updateActor(horz, vert);
 	addMessage("You kick down the door. A loud noise reverberates throughout the dungeon.")
 }
 
@@ -46,10 +46,18 @@ var GameSpace = (function() {
 		var path = pathFinder.findPath(monster.x, monster.y, rogue.x, rogue.y, grid);
 		// console.log("path:", path);
 		if(path.length > 0) {
-			var horz = path[1][0];
-			var vert = path[1][1];
-			console.log("monster:", monster.x, monster.y);
-			console.log("horz: " + horz, "vert: " + vert);
+			var horz = path[1][0] - monster.x;
+			var vert = path[1][1] - monster.y;
+			// console.log("monster:", monster.x, monster.y);
+			// console.log("horz: " + horz, "vert: " + vert);
+			if(path.length === 1) {
+				// call monster combat function. not implemented yet
+			}
+			else {
+				currentLevel.updateActor(horz, vert, monster);
+			}
+
+			
 		}
 		
 	}
@@ -127,8 +135,8 @@ var GameSpace = (function() {
 		else if (checkNextTile(horz, vert) === 'monster') {
 			// call a combat function
 			// 
-			// updateRogue is just a temporary solution
-			currentLevel.updateRogue(horz, vert);
+			// updateActor is just a temporary solution
+			currentLevel.updateActor(horz, vert, rogue);
 			turnHandler();
 		}
 		else if (checkNextTile(horz, vert) === 'door'){
@@ -139,7 +147,7 @@ var GameSpace = (function() {
 			turnHandler();
 		}
 		else if (checkNextTile(horz, vert) === 'empty'){
-			currentLevel.updateRogue(horz, vert);
+			currentLevel.updateActor(horz, vert, rogue);
 			turnHandler();
 		}
 		
@@ -429,17 +437,29 @@ var GameSpace = (function() {
 			this.updateDisplay(this.map[y][x]);
 		}
 
-		this.updateRogue = function(horz, vert) {
-			var tempTile = new Tile(rogue.x , rogue.y); 
-			// console.log(tempTile.location());
-			rogue.x += horz;
-			rogue.y += vert;
-			this.map[rogue.y][rogue.x] = rogue;
-			this.map[rogue.y - vert][rogue.x - horz] = tempTile 
-			// console.log(rogue.location())
-			// this.drawMap();
-			this.updateDisplay(rogue, tempTile)
-		};
+		this.updateActor = function(horz, vert, actor) {
+			var tempTile = new Tile(actor.x , actor.y); 
+			actor.x += horz;
+			actor.y += vert;
+			console.log(actor);
+			console.log("x: ", actor.x, " y: ", actor.y);
+			console.log("location", this.map[actor.y][actor.x]);
+			this.map[actor.y][actor.x] = actor;
+			this.map[actor.y - vert][actor.x - horz] = tempTile;
+			this.updateDisplay(actor, tempTile)
+		}
+
+		// this.updateRogue = function(horz, vert) {
+		// 	var tempTile = new Tile(rogue.x , rogue.y); 
+		// 	// console.log(tempTile.location());
+		// 	rogue.x += horz;
+		// 	rogue.y += vert;
+		// 	this.map[rogue.y][rogue.x] = rogue;
+		// 	this.map[rogue.y - vert][rogue.x - horz] = tempTile; 
+		// 	// console.log(rogue.location())
+		// 	// this.drawMap();
+		// 	this.updateDisplay(rogue, tempTile)
+		// };
 
 
 		this.drawMap = function() {
@@ -623,6 +643,8 @@ var GameSpace = (function() {
 		GameSpace: GameSpace,
 		initialize: initialize,
 		keyHandler: keyHandler,
+		rogue: rogue,
+		currentLevel: currentLevel,
 	}
 
 })();
