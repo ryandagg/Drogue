@@ -16,7 +16,7 @@
  */
 
 /* copy-bin:
-else if (checkNextTile(horz, vert) === 'door'){
+else if(checkNextTile(horz, vert) === 'door'){
 	currentLevel.updateActor(horz, vert);
 	addMessage("You kick down the door. A loud noise reverberates throughout the dungeon.")
 }
@@ -32,7 +32,119 @@ var GameSpace = (function() {
 	};
 
 	var addMessage = function(text) {
-		$("#messages").append("<p>" + text + "</p>")
+		$("#messages").prepend("<p>" + text + "</p>")
+	}
+
+	var turnHandler = function () {
+		totalTurns++;
+		addMessage("------------------- Turn " + totalTurns + " -------------------");
+		for(var i = 0; i < monstersActive.length; i++) {
+			monsterTurn(monstersActive[i]);
+		}
+		// console.log(totalTurns);
+
+		// character regen
+		actorRegen(rogue);
+	}
+
+	var checkNextTile = function(horz, vert) {
+		var nextTile = currentLevel.map[rogue.y + vert][rogue.x + horz];
+		if(nextTile.monster) {
+			return "monster";
+		}
+		else if(nextTile.impassable) {
+			return "impassable";
+		}
+		else if(nextTile.door) {
+			return "door";
+		}
+		else if(nextTile.character) {
+			return "character";
+		}
+		else {
+			return 'empty';
+		}
+	}
+
+	var keyHandler = function(keyCode) {
+		var horz;
+		var vert;
+		// "right = l"
+		if(keyCode === 108) {
+			horz = 1;
+			vert = 0;
+		}
+		// "left = h"
+		else if(keyCode === 104) {
+			horz = -1;
+			vert = 0;
+		}
+		// "down = j"
+		else if(keyCode === 106) {
+			horz = 0;
+			vert = 1;
+		}
+		// "up = k"
+		else if(keyCode === 107) {
+			horz = 0;
+			vert = -1;
+		}
+		// "upright = u"
+		else if(keyCode === 117) {
+			horz = 1;
+			vert = -1;
+		}
+		// "upleft = y"
+		else if(keyCode === 121) {
+			horz = -1;
+			vert = -1;
+		}
+		// "downright = n"
+		else if(keyCode === 110) {
+			horz = 1;
+			vert = 1;
+		}
+		// "downleft = b"
+		else if(keyCode === 98) {
+			horz = -1;
+			vert = 1;
+		}
+		// wait a turn = "."
+		else if(keyCode === 46) {
+			horz = 0;
+			vert = 0;
+		}
+
+		// console.log("horz: ", horz, " vert: ", vert);
+		if(checkNextTile(horz, vert) === 'impassable') {
+				addMessage("You shall not pass!")
+			}
+		else if(checkNextTile(horz, vert) === 'monster') {
+			combatHandler(rogue, currentLevel.map[rogue.y + vert][rogue.x + horz]);
+			turnHandler();
+		}
+		else if(checkNextTile(horz, vert) === 'door'){
+			currentLevel.emptyTile(rogue.x + horz, rogue.y + vert);
+			currentLevel.findRoomLightRoom(rogue.x + horz, rogue.y + vert, currentLevel.roomList);
+			// update dungeon. Takes 2 turns to kick down a door.
+			addMessage("You kick down the door. A loud noise reverberates throughout the dungeon.")
+			turnHandler();
+		}
+		else if(checkNextTile(horz, vert) === 'empty') {
+			currentLevel.updateActor(horz, vert, rogue);
+			turnHandler();
+		}
+		else if(checkNextTile(horz, vert) === 'character') {
+			turnHandler();
+		}
+		
+	}	
+
+	var actorRegen = function(actor) {
+		if(actor.health < actor.maxHealth) {
+			actor.health += actor.maxHealth / actor.regenRate;
+			// console.log("health: ", actor.health);
+		}
 	}
 
 	var monsterTurn = function(monster) {
@@ -45,119 +157,90 @@ var GameSpace = (function() {
 
 		var path = pathFinder.findPath(monster.x, monster.y, rogue.x, rogue.y, grid);
 		// console.log("path:", path);
-		if(path.length > 0) {
+		if(path.length > 0 && path.length < 11) {
 			var horz = path[1][0] - monster.x;
 			var vert = path[1][1] - monster.y;
 			// console.log("monster:", monster.x, monster.y);
 			// console.log("horz: " + horz, "vert: " + vert);
-			if(path.length === 1) {
-				// call monster combat function. not implemented yet
+
+			// check for combat & initiate
+			if(path.length === 2) {
+				combatHandler(monster, rogue);
+			}
+			// check if next square is a monster & wait
+			else if(currentLevel.map[path[1][1]][path[1][0]].monster) {
+				// do nothing on purpose
 			}
 			else {
 				currentLevel.updateActor(horz, vert, monster);
 			}
 
-			
 		}
-		
-	}
-	var turnHandler = function () {
-		totalTurns++;
-		for(var i = 0; i < monstersActive.length; i++) {
-			monsterTurn(monstersActive[i]);
-		}
-		// console.log(totalTurns);
+		actorRegen(monster);
 	}
 
-	var checkNextTile = function(horz, vert) {
-		var nextTile = currentLevel.map[rogue.y + vert][rogue.x + horz];
-		if (nextTile.monster) {
-			return "monster";
+	var removeMonster = function(monster, array) {
+		for(var i = 0; i < array.length; i++) {
+			if(array[i].x === monster.x && array[i].y === monster.y) {
+				array.splice(i, 1);
+				break;
+			}
 		}
-		else if(nextTile.impassable) {
-			return "impassable";
+	}
+
+// combat!
+	var damageRoll = function(attacker) {
+		var damage = 0;
+		for(var i = 0; i < attacker.damClump; i++) {
+			damage += Math.random() * attacker.maxDamage/attacker.damClump;
 		}
-		else if(nextTile.door) {
-			return "door";
+		return damage;
+	}
+
+	var attackRoll = function(attacker, defender) {
+		var toHitFactor = attacker.offense - defender.defense + 50;
+		var roll = Math.random() * 100;
+		if (roll < toHitFactor) {
+			return true;
 		}
 		else {
-			return 'empty';
+			return false;
 		}
 	}
 
-	var keyHandler = function(keyCode) {
-		var horz;
-		var vert;
-		// "right = l"
-		if(keyCode === 108) {
-			horz = 1
-			vert = 0
+	var combatHandler = function(attacker, defender) {
+		if(attackRoll(attacker, defender)) {
+			var damage = damageRoll(attacker);
+			defender.health -= damage;
+			if(defender.health < 0) {
+				addMessage("The " + attacker.class + " killed the " + defender.class + "!");
+				currentLevel.emptyTile(defender.x, defender.y);
+				if(defender === rogue) {
+					// end game
+				}
+				else if(defender.monster) {
+					// console.log("monster dead")
+					removeMonster(defender, monstersActive);
+				}
+			}
+			else {
+				addMessage("The " + attacker.class + " hit the " + defender.class + " for " + Math.round(damage) + " damage.");
+			}
 		}
-		// "left = h"
-		else if(keyCode === 104) {
-			horz = -1
-			vert = 0
-		}
-		// "down = j"
-		else if(keyCode === 106) {
-			horz = 0
-			vert = 1
-		}
-		// "up = k"
-		else if(keyCode === 107) {
-			horz = 0
-			vert = -1
-		}
-		// "upright = u"
-		else if(keyCode === 117) {
-			horz = 1
-			vert = -1
-		}
-		// "upleft = y"
-		else if(keyCode === 121) {
-			horz = -1
-			vert = -1
-		}
-		// "downright = n"
-		else if(keyCode === 110) {
-			horz = 1
-			vert = 1
-		}
-		// "downleft = b"
-		else if(keyCode === 98) {
-			horz = -1
-			vert = 1
+		else {
+			addMessage("The " + attacker.class + " missed the " + defender.class + ".")
 		}
 
-		if(checkNextTile(horz, vert) === 'impassable') {
-				addMessage("You shall not pass!")
-			}
-		else if (checkNextTile(horz, vert) === 'monster') {
-			// call a combat function
-			// 
-			// updateActor is just a temporary solution
-			currentLevel.updateActor(horz, vert, rogue);
-			turnHandler();
-		}
-		else if (checkNextTile(horz, vert) === 'door'){
-			currentLevel.emptyTile(rogue.x + horz, rogue.y + vert);
-			currentLevel.findRoomLightRoom(rogue.x + horz, rogue.y + vert, currentLevel.roomList);
-			// update dungeon. Takes 2 turns to kick down a door.
-			addMessage("You kick down the door. A loud noise reverberates throughout the dungeon.")
-			turnHandler();
-		}
-		else if (checkNextTile(horz, vert) === 'empty'){
-			currentLevel.updateActor(horz, vert, rogue);
-			turnHandler();
-		}
-		
-	}	
+	}
 
 // level and map related code
 	var Level = function(columns, rows) {
 		this.rows = rows;
 		this.columns = columns;
 		this.map = [];
+
+		// used to keep track of rooms for each level so they can be used in various ways
+		this.roomList = null;
 
 		this.createMap = function () {
 			// console.log(this.rows)
@@ -224,11 +307,11 @@ var GameSpace = (function() {
 		// checks if spaces to left/right or up/down from coordinate are empty returns, true or false. THIS IS CURRENTLY NOT WORKING properly: rooms are being generated without doors.
 		this.checkDoorPath = function(x, y, grid) {
 			// check left and right
-			if (grid[y][x - 1].class === 'dot' && grid[y][x + 1].class === 'dot') {
+			if(grid[y][x - 1].class === 'dot' && grid[y][x + 1].class === 'dot') {
 				// console.log("leftright");
 				return true;
 			}
-			else if (grid[y - 1][x].class === 'dot' && grid[y + 1][x].class === 'dot') {
+			else if(grid[y - 1][x].class === 'dot' && grid[y + 1][x].class === 'dot') {
 				// console.log("updown");
 				return true;
 			}
@@ -278,10 +361,6 @@ var GameSpace = (function() {
 
 		}
 
-
-		// used to keep track of rooms for each level so they can be used in various ways
-		this.roomList = null;
-
 		// used to darken rooms upon level creations & lighten them upon character entering, also sets monsters in room to attack. True lightens, false darkens.
 		this.popRoom = function(trueFalse, room) {
 			// console.log(trueFalse, 'wtf');
@@ -314,7 +393,7 @@ var GameSpace = (function() {
 			
 			// checks for nested rooms and darkens them again.
 			for(var j = 0; j < array.length; j++) {
-				if (poppedIndex !== j) {
+				if(poppedIndex !== j) {
 					this.eachTileInRoom(poppedRoom, function(x, y) {
 						// console.log("x: " + x);
 						// console.log("y: " + y);
@@ -424,9 +503,11 @@ var GameSpace = (function() {
 			$(pos(obj1.location())).text(obj1.text);
 			$(pos(obj1.location())).removeClass();
 			$(pos(obj1.location())).addClass(obj1.class + " tile");
+			// console.log("arguments length: ", arguments.length);
 			if(arguments.length === 2) {
-				$(pos(obj2.location())).addClass(obj2.class + " tile");
+				// console.log("arguments if triggered");
 				$(pos(obj2.location())).removeClass();
+				$(pos(obj2.location())).addClass(obj2.class + " tile");
 				$(pos(obj2.location())).text(obj2.text);
 			}
 		};
@@ -441,26 +522,13 @@ var GameSpace = (function() {
 			var tempTile = new Tile(actor.x , actor.y); 
 			actor.x += horz;
 			actor.y += vert;
-			console.log(actor);
-			console.log("x: ", actor.x, " y: ", actor.y);
-			console.log("location", this.map[actor.y][actor.x]);
+			// console.log(actor);
+			// console.log("x: ", actor.x, " y: ", actor.y);
+			// console.log("location", this.map[actor.y][actor.x]);
 			this.map[actor.y][actor.x] = actor;
 			this.map[actor.y - vert][actor.x - horz] = tempTile;
 			this.updateDisplay(actor, tempTile)
 		}
-
-		// this.updateRogue = function(horz, vert) {
-		// 	var tempTile = new Tile(rogue.x , rogue.y); 
-		// 	// console.log(tempTile.location());
-		// 	rogue.x += horz;
-		// 	rogue.y += vert;
-		// 	this.map[rogue.y][rogue.x] = rogue;
-		// 	this.map[rogue.y - vert][rogue.x - horz] = tempTile; 
-		// 	// console.log(rogue.location())
-		// 	// this.drawMap();
-		// 	this.updateDisplay(rogue, tempTile)
-		// };
-
 
 		this.drawMap = function() {
 			$("#game-window").empty();
@@ -559,12 +627,16 @@ var GameSpace = (function() {
 // character related code
 	var Character = function(x, y) {
 		Tile.call(this, x, y);
-		this.text = "@"
-		this.class = "character"
-		this.health = 100;
-		this.attack = 100;
-		this.defense = 100;
-		this.damage = 100;	
+		this.text = "@";
+		this.class = "character";
+		this.character = true;
+		this.maxHealth = 100;
+		this.health = this.maxHealth;
+		this.offense = 10;
+		this.defense = 10;
+		this.maxDamage = 10;
+		this.damClump = 3;
+
 	}
 
 	Character.prototype = new Tile();
@@ -574,14 +646,13 @@ var GameSpace = (function() {
 // monster related code
 	var Monster = function() {
 		this.healthBase = 100;
-		this.attackBase = 100;
-		this.damageBase = 100;
+		this.offenseBase = 100;
+		this.maxDamageBase = 100;
 		this.defenseBase = 100;
+		this.damClump = 3;
+		this.regenRate = 400;
 		this.monster = true;
-	}
-
-	Monster.prototype.attack = function() {
-		// do something
+		this.moveSpeed = 1;
 	}
 
 	Monster.prototype = new Tile();
@@ -591,10 +662,11 @@ var GameSpace = (function() {
 		Tile.call(this, x, y)
 		this.class = 'rat'
 		this.text = 'r'
-		this.health = this.healthBase/10;
-		this.attack = this.attackBase/10;
+		this.maxHealth = this.healthBase/10;
+		this.health = this.maxHealth;
+		this.offense = this.offenseBase/10;
 		this.defense = this.defenseBase/10;
-		this.damage = this.damageBase/10;
+		this.maxDamage = this.maxDamageBase/10;
 		this.treasureQuality = 1;
 
 	}
@@ -606,10 +678,11 @@ var GameSpace = (function() {
 		Tile.call(this, x, y)
 		this.class = 'kobold'
 		this.text = 'k'
-		this.health = this.healthBase/8;
-		this.attack = this.attackBase/8;
+		this.maxHealth = this.healthBase/8;
+		this.health = this.maxHealth;
+		this.offense = this.offenseBase/8;
 		this.defense = this.defenseBase/8;
-		this.damage = this.damageBase/8;
+		this.maxDamage = this.maxDamageBase/8;
 		this.treasureQuality = 2;
 	}
 
@@ -652,8 +725,8 @@ var GameSpace = (function() {
 Object.prototype.clone = function() {
 	var newObj = (this instanceof Array) ? [] : {};
 		for (i in this) {
-			if (i == 'clone') continue;
-			if (this[i] && typeof this[i] == "object") {
+			if(i == 'clone') continue;
+			if(this[i] && typeof this[i] == "object") {
 			  newObj[i] = this[i].clone();
 			} 
 			else {
@@ -669,7 +742,7 @@ $(document).on('ready', function() {
 	GameSpace.initialize();
 	// keyboard handler
 	$(document).keypress(function(e) {
-		// console.log(e);
+		// console.log("charCode: ", e.charCode);
 		GameSpace.keyHandler(e.charCode);
 	})
 });
