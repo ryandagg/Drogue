@@ -48,6 +48,7 @@ var GameSpace = (function() {
 		else {
 			y += str[str.length - 1];
 		}
+
 		return [Number(x), Number(y)];
 	}
 
@@ -88,109 +89,8 @@ var GameSpace = (function() {
 		// console.log(totalTurns);
 
 		// character regen
-		actorRegen(rogue);
-	}
-
-	var checkNextTile = function(horz, vert) {
-		var nextTile = currentLevel.map[rogue.y + vert][rogue.x + horz];
-		if(nextTile.monster) {
-			return "monster";
-		}
-		else if(nextTile.impassable) {
-			return "impassable";
-		}
-		else if(nextTile.door) {
-			return "door";
-		}
-		else if(nextTile.character) {
-			return "character";
-		}
-		else {
-			return 'empty';
-		}
-	}
-
-	// todo put in character class
-	var keyHandler = function(keyCode) {
-		var horz;
-		var vert;
-		// "right = l"
-		if(keyCode === 108) {
-			horz = 1;
-			vert = 0;
-		}
-		// "left = h"
-		else if(keyCode === 104) {
-			horz = -1;
-			vert = 0;
-		}
-		// "down = j"
-		else if(keyCode === 106) {
-			horz = 0;
-			vert = 1;
-		}
-		// "up = k"
-		else if(keyCode === 107) {
-			horz = 0;
-			vert = -1;
-		}
-		// "upright = u"
-		else if(keyCode === 117) {
-			horz = 1;
-			vert = -1;
-		}
-		// "upleft = y"
-		else if(keyCode === 121) {
-			horz = -1;
-			vert = -1;
-		}
-		// "downright = n"
-		else if(keyCode === 110) {
-			horz = 1;
-			vert = 1;
-		}
-		// "downleft = b"
-		else if(keyCode === 98) {
-			horz = -1;
-			vert = 1;
-		}
-		// wait a turn = "."
-		else if(keyCode === 46) {
-			horz = 0;
-			vert = 0;
-		}
-
-		// console.log("horz: ", horz, " vert: ", vert);
-		if(checkNextTile(horz, vert) === 'impassable') {
-				addMessage("You shall not pass!")
-			}
-		else if(checkNextTile(horz, vert) === 'monster') {
-			combatHandler(rogue, currentLevel.map[rogue.y + vert][rogue.x + horz]);
-			turnHandler();
-		}
-		else if(checkNextTile(horz, vert) === 'door'){
-			currentLevel.emptyTile(rogue.x + horz, rogue.y + vert);
-			currentLevel.findRoomLightRoom(rogue.x + horz, rogue.y + vert, currentLevel.roomList);
-			// update dungeon. Takes 2 turns to kick down a door.
-			addMessage("You kick down the door. A loud noise reverberates throughout the dungeon.")
-			turnHandler();
-		}
-		else if(checkNextTile(horz, vert) === 'empty') {
-			currentLevel.updateActor(horz, vert, rogue);
-			turnHandler();
-		}
-		else if(checkNextTile(horz, vert) === 'character') {
-			turnHandler();
-		}
-		
-	}	
-
-	// todo put this in an actor class
-	var actorRegen = function(actor) {
-		if(actor.health < actor.maxHealth) {
-			actor.health += actor.maxHealth / actor.regenRate;
-			// console.log("health: ", actor.health);
-		}
+		rogue.regen();
+		$("#HUD").text("HP: " + Math.floor(rogue.health));
 	}
 
 	// todo 
@@ -212,7 +112,7 @@ var GameSpace = (function() {
 
 			// check for combat & initiate
 			if(path.length === 2) {
-				combatHandler(monster, rogue);
+				monster.combatHandler(rogue);
 			}
 			// check if next square is a monster & wait
 			else if(currentLevel.map[path[1][1]][path[1][0]].monster) {
@@ -223,58 +123,7 @@ var GameSpace = (function() {
 			}
 
 		}
-		actorRegen(monster);
-	}
-
-	var removeMonster = function(monster, array) {
-		for(var i = 0; i < array.length; i++) {
-			if(array[i].x === monster.x && array[i].y === monster.y) {
-				array.splice(i, 1);
-				break;
-			}
-		}
-	}
-
-// combat!
-	var damageRoll = function(attacker) {
-		var damage = 0;
-		for(var i = 0; i < attacker.damClump; i++) {
-			damage += Math.random() * attacker.maxDamage/attacker.damClump;
-		}
-		return damage;
-	}
-
-	var attackRoll = function(attacker, defender) {
-
-		var toHitFactor = attacker.offense - defender.defense + 50;
-		var roll = Math.random() * 100;
-
-		return roll < toHitFactor;
-	}
-
-	var combatHandler = function(attacker, defender) {
-		if(attackRoll(attacker, defender)) {
-			var damage = damageRoll(attacker);
-			defender.health -= damage;
-			if(defender.health < 0) {
-				addMessage("The " + attacker.class + " killed the " + defender.class + "!");
-				currentLevel.emptyTile(defender.x, defender.y);
-				if(defender === rogue) {
-					// end game
-				}
-				else if(defender.monster) {
-					// console.log("monster dead")
-					removeMonster(defender, monstersActive);
-				}
-			}
-			else {
-				addMessage("The " + attacker.class + " hit the " + defender.class + " for " + Math.round(damage) + " damage.");
-			}
-		}
-		else {
-			addMessage("The " + attacker.class + " missed the " + defender.class + ".")
-		}
-
+		monster.regen();
 	}
 
 // level and map related code
@@ -672,6 +521,77 @@ var GameSpace = (function() {
 	Door.prototype = new Terrain();
 	Door.prototype.constructor = Door;
 
+	var Actor = function(x, y) {
+		Tile.call(this, x, y);
+		this.healthBase = 100;
+		this.offenseBase = 10;
+		this.maxDamageBase = 10;
+		this.defenseBase = 10;
+		this.damClump = 3;
+		this.regenRate = 400;
+		this.moveSpeed = 1;
+
+
+	}
+	Actor.prototype = new Tile();
+	Actor.prototype.constructor = Actor;
+
+	Actor.prototype.regen = function() {
+		if(this.health < this.maxHealth) {
+			this.health += this.maxHealth / this.regenRate;
+			// console.log("health: ", this.health);
+		}
+	}
+
+	Actor.prototype.removeActor = function(array) {
+		for(var i = 0; i < array.length; i++) {
+			if(array[i].x === this.x && array[i].y === this.y) {
+				array.splice(i, 1);
+				break;
+			}
+		}
+	}
+
+	Actor.prototype.damageRoll = function() {
+		var damage = 0;
+		for(var i = 0; i < this.damClump; i++) {
+			damage += Math.random() * this.maxDamage/this.damClump;
+		}
+		return damage;
+	}
+
+	Actor.prototype.attackRoll = function(defender) {
+
+		var toHitFactor = this.offense - defender.defense + 50;
+		var roll = Math.random() * 100;
+
+		return roll < toHitFactor;
+	}
+
+	Actor.prototype.combatHandler = function(defender) {
+		if(this.attackRoll(defender)) {
+			var damage = this.damageRoll();
+			defender.health -= damage;
+			if(defender.health < 0) {
+				addMessage("The " + this.class + " killed the " + defender.class + "!");
+				currentLevel.emptyTile(defender.x, defender.y);
+				if(defender === rogue) {
+					// end game
+				}
+				else if(defender.monster) {
+					// console.log("monster dead")
+					defender.removeActor(monstersActive);
+				}
+			}
+			else {
+				addMessage("The " + this.class + " hit the " + defender.class + " for " + Math.round(damage) + " damage.");
+			}
+		}
+		else {
+			addMessage("The " + this.class + " missed the " + defender.class + ".")
+		}
+
+	}
 
 // character related code
 	var Character = function(x, y) {
@@ -679,46 +599,134 @@ var GameSpace = (function() {
 		this.text = "@";
 		this.class = "character";
 		this.character = true;
-		this.maxHealth = 100;
+		this.inspectText = "A badass mother fucker.";
+
+		// combat stats
+		this.maxHealth = this.healthBase;
 		this.health = this.maxHealth;
-		this.offense = 10;
-		this.defense = 10;
-		this.maxDamage = 10;
-		this.damClump = 3;
-		this.inspectText = "A badass MFer.";
+		this.offense = this.offenseBase;
+		this.defense = this.defenseBase;
+		this.maxDamage = this.maxDamageBase;
 	}
 
-	Character.prototype = new Tile();
+	Character.prototype = new Actor();
 	Character.prototype.constructor = Character;
 
+	Character.prototype.checkNextTile = function(horz, vert) {
+		var nextTile = currentLevel.map[this.y + vert][this.x + horz];
+		if(nextTile.monster) {
+			return "monster";
+		}
+		else if(nextTile.impassable) {
+			return "impassable";
+		}
+		else if(nextTile.door) {
+			return "door";
+		}
+		else if(nextTile.character) {
+			return "character";
+		}
+		else {
+			return 'empty';
+		}
+	}
+
+	// todo put in character class
+	Character.prototype.keyHandler = function(keyCode) {
+		var horz;
+		var vert;
+		// "right = l"
+		if(keyCode === 108) {
+			horz = 1;
+			vert = 0;
+		}
+		// "left = h"
+		else if(keyCode === 104) {
+			horz = -1;
+			vert = 0;
+		}
+		// "down = j"
+		else if(keyCode === 106) {
+			horz = 0;
+			vert = 1;
+		}
+		// "up = k"
+		else if(keyCode === 107) {
+			horz = 0;
+			vert = -1;
+		}
+		// "upright = u"
+		else if(keyCode === 117) {
+			horz = 1;
+			vert = -1;
+		}
+		// "upleft = y"
+		else if(keyCode === 121) {
+			horz = -1;
+			vert = -1;
+		}
+		// "downright = n"
+		else if(keyCode === 110) {
+			horz = 1;
+			vert = 1;
+		}
+		// "downleft = b"
+		else if(keyCode === 98) {
+			horz = -1;
+			vert = 1;
+		}
+		// wait a turn = "."
+		else if(keyCode === 46) {
+			horz = 0;
+			vert = 0;
+		}
+
+		// console.log("horz: ", horz, " vert: ", vert);
+		if(this.checkNextTile(horz, vert) === 'impassable') {
+				addMessage("You shall not pass!")
+			}
+		else if(this.checkNextTile(horz, vert) === 'monster') {
+			this.combatHandler(currentLevel.map[this.y + vert][this.x + horz]);
+			turnHandler();
+		}
+		else if(this.checkNextTile(horz, vert) === 'door'){
+			currentLevel.emptyTile(this.x + horz, this.y + vert);
+			currentLevel.findRoomLightRoom(this.x + horz, this.y + vert, currentLevel.roomList);
+			// update dungeon. Takes 2 turns to kick down a door.
+			addMessage("You kick down the door. A loud noise reverberates throughout the dungeon.")
+			turnHandler();
+		}
+		else if(this.checkNextTile(horz, vert) === 'empty') {
+			currentLevel.updateActor(horz, vert, this);
+			turnHandler();
+		}
+		else if(this.checkNextTile(horz, vert) === 'character') {
+			turnHandler();
+		}
+		
+	}	
 
 // monster related code
 	var Monster = function() {
-		this.healthBase = 100;
-		this.offenseBase = 100;
-		this.maxDamageBase = 100;
-		this.defenseBase = 100;
-		this.damClump = 3;
-		this.regenRate = 400;
 		this.monster = true;
-		this.moveSpeed = 1;
 	}
 
-	Monster.prototype = new Tile();
+	Monster.prototype = new Actor();
 	Monster.prototype.constructor = Monster;
 
 	var Rat = function(x, y) {
 		Tile.call(this, x, y)
 		this.class = 'rat'
 		this.text = 'r'
-		this.maxHealth = this.healthBase/10;
-		this.health = this.maxHealth;
-		this.offense = this.offenseBase/10;
-		this.defense = this.defenseBase/10;
-		this.maxDamage = this.maxDamageBase/10;
-		this.treasureQuality = 1;
 		this.inspectText = "A enormous, mangy rat. It looks hungry."
 
+		// combat stats
+		this.maxHealth = this.healthBase/10;
+		this.health = this.maxHealth;
+		this.offense = this.offenseBase;
+		this.defense = this.defenseBase;
+		this.maxDamage = this.maxDamageBase;
+		this.treasureQuality = 1;
 	}
 
 	Rat.prototype = new Monster();
@@ -728,13 +736,15 @@ var GameSpace = (function() {
 		Tile.call(this, x, y)
 		this.class = 'kobold'
 		this.text = 'k'
+		this.inspectText = "A short, reptilian humanoid. It walks on two legs and wants to stab you."
+
+		// combat stats
 		this.maxHealth = this.healthBase/8;
 		this.health = this.maxHealth;
 		this.offense = this.offenseBase/8;
 		this.defense = this.defenseBase/8;
 		this.maxDamage = this.maxDamageBase/8;
 		this.treasureQuality = 2;
-		this.inspectText = "A short, reptilian humanoid. It walks on two legs and wants to stab you."
 	}
 
 	Kobold.prototype = new Monster();
@@ -766,8 +776,9 @@ var GameSpace = (function() {
 	return {
 		GameSpace: GameSpace,
 		initialize: initialize,
-		keyHandler: keyHandler,
+		// keyHandler: keyHandler,
 		rogue: rogue,
+		// rogue.keyHandler: rogue.keyHandler,
 		clickText: clickText,
 		currentLevel: currentLevel,
 	}
@@ -783,7 +794,7 @@ $(document).on('ready', function() {
 	// keyboard handler
 	$(document).keypress(function(e) {
 		// console.log("charCode: ", e.charCode);
-		GameSpace.keyHandler(e.charCode);
+		GameSpace.rogue.keyHandler(e.charCode);
 	});
 
 	// click handler to inspect elements on map

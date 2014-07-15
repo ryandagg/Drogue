@@ -7,10 +7,21 @@ $tileHeight: $gameHeight/40*1.1;
 
 }
 
+body {
+	margin: 2%;
+}
+
 #game-window {
 	height: $gameHeight;
-	margin: 2%;
+	// margin: 2%;
 
+}
+
+#HUD {
+	display: inline-block;
+	margin-bottom: 1%;
+	background-color: #eee;
+	height: 5%;
 }
 
 #messages {
@@ -20,7 +31,7 @@ $tileHeight: $gameHeight/40*1.1;
 	background-color: #eee;
 	color: black;
 	overflow-y: scroll;
-	margin: 0.5% 0 0 2%;
+	margin-bottom: 1%;
 
 }
 
