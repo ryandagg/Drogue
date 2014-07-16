@@ -27,6 +27,12 @@ else if(checkNextTile(horz, vert) === 'door'){
 
 var GameSpace = (function() {
 // helper funcitons
+	// constant variables
+	var MAP_COLUMNS = 60;
+	var MAP_ROWS = 40;
+	var ROOMS_QUANTITY = 55;
+	var ROOM_MIN_DIMENSION = 4;
+	var ROOM_MAX_DIMENSION = 8;
 
 	// formats location of object to reference tile id
 	var pos = function(loc) {
@@ -104,6 +110,7 @@ var GameSpace = (function() {
 
 		var path = pathFinder.findPath(monster.x, monster.y, rogue.x, rogue.y, grid);
 		// console.log("path:", path);
+		// 
 		if(path.length > 0 && path.length < 11) {
 			var horz = path[1][0] - monster.x;
 			var vert = path[1][1] - monster.y;
@@ -311,18 +318,16 @@ var GameSpace = (function() {
 		}
 
 		this.randomRooms = function(quantity) {
-			var minRoomDimension = 4;
-			var maxRoomDimension = 11;
 			// create a temp map to check for overlap & door problems
 			var tempMap = this.map.map(clone);
 			var tempRoomList = [];
 
 			var i = 0;
 			while (i < quantity) {
-				var centerX = Math.floor(Math.random()*(this.columns - maxRoomDimension) + maxRoomDimension/2) 
-				var centerY = Math.floor(Math.random()*(this.rows - maxRoomDimension) + maxRoomDimension/2)
-				var width = Math.floor(Math.random() * (maxRoomDimension - minRoomDimension) + minRoomDimension)
-				var height = Math.floor(Math.random() * (maxRoomDimension - minRoomDimension) + minRoomDimension)
+				var centerX = Math.floor(Math.random()*(this.columns - ROOM_MAX_DIMENSION) + ROOM_MAX_DIMENSION/2) 
+				var centerY = Math.floor(Math.random()*(this.rows - ROOM_MAX_DIMENSION) + ROOM_MAX_DIMENSION/2)
+				var width = Math.floor(Math.random() * (ROOM_MAX_DIMENSION - ROOM_MIN_DIMENSION) + ROOM_MIN_DIMENSION)
+				var height = Math.floor(Math.random() * (ROOM_MAX_DIMENSION - ROOM_MIN_DIMENSION) + ROOM_MIN_DIMENSION)
 
 				var tempRoom = new Room(centerX, centerY, width, height)
 				// this.createRoom(tempRoom);
@@ -356,12 +361,12 @@ var GameSpace = (function() {
 
 		this.createTerrain = function() {
 			// creates walls on outer edge of map
-			var outerWalls = new Room(Math.floor(currentLevel.columns/2), Math.floor(currentLevel.rows/2), currentLevel.columns, currentLevel.rows);
+			var outerWalls = new Room(Math.floor(this.columns/2), Math.floor(this.rows/2), this.columns, this.rows);
 
 			this.createRoom(outerWalls, this.map);
 
 			// Creates random rooms on map. DOES NOT SCALE WITH SIZE OF LEVEL leads to infinite loops on smaller levels.
-			this.randomRooms(Math.ceil(Math.sqrt(this.columns*this.rows)/1.5));
+			this.randomRooms(ROOMS_QUANTITY);
 			// console.log(Math.sqrt(this.columns*this.rows)/1.5);	
 		};
 
@@ -373,13 +378,12 @@ var GameSpace = (function() {
 		// this populates monsters on map. Currently only populates rats. Needs to work for other monsters and only populate in rooms.
 		this.createMonsters = function(quantity) {
 			var i = 0;
-			var monster
 			while (i < quantity) {
-				var randomY = Math.floor(Math.random() * currentLevel.rows)
-				var randomX = Math.floor(Math.random() * currentLevel.columns)
+				var randomY = Math.floor(Math.random() * this.rows)
+				var randomX = Math.floor(Math.random() * this.columns)
 				var randomRat = new Rat(randomX, randomY);
-				if(currentLevel.map[randomY][randomX].class === 'dot') {
-					currentLevel.map[randomY][randomX] = randomRat;
+				if(this.map[randomY][randomX].class === 'dot') {
+					this.map[randomY][randomX] = randomRat;
 					monstersActive.push(randomRat);
 					i++;
 				}
@@ -387,12 +391,37 @@ var GameSpace = (function() {
 			// console.log(monstersActive);
 		};
 
+		this.placeStairs = function(quantity) {
+			var i = 0;
+			while (i < quantity) {
+				var randomY = Math.floor(Math.random() * this.rows)
+				var randomX = Math.floor(Math.random() * this.columns)
+				var randomDownStairs = new DownStairs(randomX, randomY);
+				if(this.map[randomY][randomX].class === 'dot') {
+					this.map[randomY][randomX] = randomDownStairs;
+					i++;
+				}
+			}
+			// console.log("placeStairs worked");
+			var j = 0;
+			while (j < quantity) {
+				var randomY = Math.floor(Math.random() * this.rows)
+				var randomX = Math.floor(Math.random() * this.columns)
+				var randomUpStairs = new UpStairs(randomX, randomY);
+				if(this.map[randomY][randomX].class === 'dot') {
+					this.map[randomY][randomX] = randomUpStairs;
+					j++;
+				}
+			}
+		}
+
 		this.placeCharacter = function() {
 			this.map[rogue.y][rogue.x] = rogue;
 		};
 
 		// Currently works on doors and dots. Could potentially handle items and stairs with conditional statements.
 		this.updateDisplay = function(obj1, obj2) {
+			console.log("updateDisplay obj2", obj2);
 			$(pos(obj1.location())).text(obj1.text);
 			$(pos(obj1.location())).removeClass();
 			$(pos(obj1.location())).addClass(obj1.class + " tile");
@@ -411,16 +440,39 @@ var GameSpace = (function() {
 			this.updateDisplay(this.map[y][x]);
 		}
 
+		
+		// moves characters & monsters around map & calls updateDisplay
 		this.updateActor = function(horz, vert, actor) {
-			var tempTile = new Tile(actor.x , actor.y); 
+
+			
+			var tempTile = actor.standingOn;
+			// console.log(actor.standingOn);
+
+			// change the location of the actor without moving in map
 			actor.x += horz;
 			actor.y += vert;
-			// console.log(actor);
-			// console.log("x: ", actor.x, " y: ", actor.y);
-			// console.log("location", this.map[actor.y][actor.x]);
+
+			// move the actor in map. Needed in both updates what the actor is standing on
+			actor.standingOn = this.map[actor.y][actor.x];
+
 			this.map[actor.y][actor.x] = actor;
+
+			// update map with new tile
 			this.map[actor.y - vert][actor.x - horz] = tempTile;
-			this.updateDisplay(actor, tempTile)
+
+			// udpates display
+			this.updateDisplay(actor, tempTile);
+
+			// // this is saved incase the code above breaks. It was written before Actor.standingOn was implemented.
+			// var tempTile = new Tile(actor.x , actor.y); 
+			// // change the location of the actor without moving in map
+			// actor.x += horz;
+			// actor.y += vert;
+			// // move the actor in map 
+			// this.map[actor.y][actor.x] = actor;
+			// this.map[actor.y - vert][actor.x - horz] = tempTile;
+			// this.updateDisplay(actor, tempTile);
+
 		}
 
 		this.drawMap = function() {
@@ -493,6 +545,7 @@ var GameSpace = (function() {
 		return [this.x, this.y]
 	}
 
+	// class currently does nothing but is being used for expected future functionality
 	var Terrain = function() {
 	}
 
@@ -521,8 +574,40 @@ var GameSpace = (function() {
 	Door.prototype = new Terrain();
 	Door.prototype.constructor = Door;
 
+	var DownStairs = function(x, y) {
+		Tile.call(this, x, y);
+		this.text = ">"
+		this.class = "downstairs";
+		this.inspectText = "Stairs leading further into the dungeon. Are you ready for a greater challenge?";
+	}
+
+	DownStairs.prototype = new Terrain();
+	DownStairs.prototype.constructor = DownStairs;
+
+	DownStairs.prototype.goDown = function() {
+		// call a function in currentLevel
+	}
+
+	var UpStairs = function(x, y) {
+		Tile.call(this, x, y);
+		this.text = "<"
+		this.class = "upstairs";
+		this.inspectText = "Stairs leading up to an easier part of the dungeon.";
+	}
+
+	UpStairs.prototype = new Terrain();
+	UpStairs.prototype.constructor = UpStairs;
+
+	UpStairs.prototype.goUp = function() {
+		// call a function in currentLevel
+	}
+
+// character & monster code section. Includes combat.
 	var Actor = function(x, y) {
 		Tile.call(this, x, y);
+		this.standingOn = new Tile(x, y);
+
+		// combat stats
 		this.healthBase = 100;
 		this.offenseBase = 10;
 		this.maxDamageBase = 10;
@@ -530,7 +615,6 @@ var GameSpace = (function() {
 		this.damClump = 3;
 		this.regenRate = 400;
 		this.moveSpeed = 1;
-
 
 	}
 	Actor.prototype = new Tile();
@@ -561,7 +645,6 @@ var GameSpace = (function() {
 	}
 
 	Actor.prototype.attackRoll = function(defender) {
-
 		var toHitFactor = this.offense - defender.defense + 50;
 		var roll = Math.random() * 100;
 
@@ -595,11 +678,12 @@ var GameSpace = (function() {
 
 // character related code
 	var Character = function(x, y) {
-		Tile.call(this, x, y);
+		// Tile.call(this, x, y);
+		Actor.call(this, x, y);
 		this.text = "@";
 		this.class = "character";
 		this.character = true;
-		this.inspectText = "A badass mother fucker.";
+		this.inspectText = "A badass MFer.";
 
 		// combat stats
 		this.maxHealth = this.healthBase;
@@ -707,7 +791,8 @@ var GameSpace = (function() {
 	}	
 
 // monster related code
-	var Monster = function() {
+	var Monster = function(x, y) {
+		Actor.call(this, x, y);
 		this.monster = true;
 	}
 
@@ -715,6 +800,7 @@ var GameSpace = (function() {
 	Monster.prototype.constructor = Monster;
 
 	var Rat = function(x, y) {
+		Monster.call(this, x, y);
 		Tile.call(this, x, y)
 		this.class = 'rat'
 		this.text = 'r'
@@ -733,6 +819,7 @@ var GameSpace = (function() {
 	Rat.prototype.constructor = Rat;
 
 	var Kobold = function(x, y) {
+		Monster.call(this, x, y);
 		Tile.call(this, x, y)
 		this.class = 'kobold'
 		this.text = 'k'
@@ -752,7 +839,7 @@ var GameSpace = (function() {
 		
 // everything else
 	// create local 'globals'
-	var currentLevel = new Level(60, 40);
+	var currentLevel = new Level(MAP_COLUMNS, MAP_ROWS);
 	var rogue = new Character(1, 1);
 	var monstersActive = [];
 	var monstersAvailable = []
@@ -764,8 +851,10 @@ var GameSpace = (function() {
 	var initialize = function() {
 		// console.log("initialize called");
 		currentLevel.createMap();
+		currentLevel.mapInitialize;
 		currentLevel.createTerrain();
 		currentLevel.placeCharacter();
+		currentLevel.placeStairs(1);
 		currentLevel.createMonsters(30);
 		currentLevel.drawMap();
 		// console.log(currentLevel.roomList);
@@ -776,17 +865,12 @@ var GameSpace = (function() {
 	return {
 		GameSpace: GameSpace,
 		initialize: initialize,
-		// keyHandler: keyHandler,
 		rogue: rogue,
-		// rogue.keyHandler: rogue.keyHandler,
 		clickText: clickText,
 		currentLevel: currentLevel,
 	}
 
 })();
-
-
-
 
 // jquery event handlers
 $(document).on('ready', function() {
