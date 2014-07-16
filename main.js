@@ -134,23 +134,28 @@ var GameSpace = (function() {
 	}
 
 	var createNewLevel = function(direction) {
-		currentLevel = new Level(MAP_COLUMNS, MAP_ROWS);
+		// var newDepth = currentLevel.depth + direction
+		// console.log("newDepth: ", newDepth);
+		// currentLevel.depth += direction;
+		currentLevel = new Level(MAP_COLUMNS, MAP_ROWS, currentLevel.depth + direction);
+		console.log(currentLevel.depth);
 		
 
 		// player goes down
 		if(direction > 0) {
-			currentLevel.initializeMap('down');
+			currentLevel.initializeMap('up');
 		}
 		// player goes up
 		else if(direction < 0) {
-			currentLevel.initializeMap('up');
+			currentLevel.initializeMap('down');
 		}
 	}
 
 // level and map related code
-	var Level = function(columns, rows) {
+	var Level = function(columns, rows, depth) {
 		this.rows = rows;
 		this.columns = columns;
+		this.depth = depth;
 		this.map = [];
 
 		// used to keep track of rooms for each level so they can be used in various ways
@@ -321,13 +326,16 @@ var GameSpace = (function() {
 				this.popRoom(false, array[i]);
 			}
 		}
-		this.randomRoomsCount = 0;
+
+		// used to check for & break infinite loops caused by randomRooms
+		this.randomRoomsCountRecursion = 0;
+		this.randomRoomsCountWhile = 0;
 
 		this.randomRooms = function(quantity) {
-			this.randomRoomsCount++;
-			if(this.randomRoomsCount > 1000) {
-				console.log("randomRooms maxed out");
-				BREAK;
+			this.randomRoomsCountRecursion++;
+			if(this.randomRoomsCountRecursion > 10000000) {
+				alert("randomRoomsRecursion maxed out");
+				// break;
 			}
 			// create a temp map to check for overlap & door problems
 			var tempMap = this.map.map(clone);
@@ -335,6 +343,11 @@ var GameSpace = (function() {
 
 			var i = 0;
 			while (i < quantity) {
+				this.randomRoomsCountWhile++;
+				if(this.randomRoomsCountWhile > 10000000) {
+					console.log("randomRoomsWhile maxed out");
+					break;
+				}
 				var centerX = Math.floor(Math.random()*(this.columns - ROOM_MAX_DIMENSION) + ROOM_MAX_DIMENSION/2) 
 				var centerY = Math.floor(Math.random()*(this.rows - ROOM_MAX_DIMENSION) + ROOM_MAX_DIMENSION/2)
 				var width = Math.floor(Math.random() * (ROOM_MAX_DIMENSION - ROOM_MIN_DIMENSION) + ROOM_MIN_DIMENSION)
@@ -387,9 +400,17 @@ var GameSpace = (function() {
 		};
 
 		// this populates monsters on map. Currently only populates rats. Needs to work for other monsters and only populate in rooms.
+
+		this.createMonstersCount = 0;
+
 		this.createMonsters = function(quantity) {
 			var i = 0;
 			while (i < quantity) {
+				this.createMonstersCount++;
+				if(this.createMonstersCount > 1000) {
+					console.log("this.createMonstersCount break");
+					break;
+				}
 				var randomY = Math.floor(Math.random() * this.rows)
 				var randomX = Math.floor(Math.random() * this.columns)
 				var randomRat = new Rat(randomX, randomY);
@@ -402,13 +423,20 @@ var GameSpace = (function() {
 			// console.log(monstersActive);
 		};
 
+		this.placeStairsCount = 0;
 		this.placeStairs = function(upDown) {
+
 			var i = 0;
 			while (i < 1) {
+				this.placeStairsCount++;
+				if(this.placeStairsCount > 1000) {
+					console.log("placeStairs break");
+					break;
+				}
 				var randomY = Math.floor(Math.random() * this.rows)
 				var randomX = Math.floor(Math.random() * this.columns)
 				var randomDownStairs = new DownStairs(randomX, randomY);
-				var randomUpStairs = new DownStairs(randomX, randomY);
+				var randomUpStairs = new UpStairs(randomX, randomY);
 				if(this.map[randomY][randomX].class === 'dot') {
 					if(upDown === 'down') {
 						this.map[randomY][randomX] = randomDownStairs;
@@ -418,7 +446,6 @@ var GameSpace = (function() {
 						this.map[randomY][randomX] = randomUpStairs;
 						i++;
 					}
-					
 				}
 			}
 
@@ -444,11 +471,17 @@ var GameSpace = (function() {
 			rogue.x = loc[0];
 			rogue.y = loc[1];
 			this.map[rogue.y][rogue.x] = rogue;
-			if(upDown === 'up') {
-				rogue.standingOn = new DownStairs(loc[0], loc[1])
+
+			if(this.depth > 0) {
+				if(upDown === 'down') {
+					rogue.standingOn = new DownStairs(rogue.x, rogue.y);
+				}
+				else if(upDown === 'up') {
+					rogue.standingOn = new UpStairs(rogue.x, rogue.y);
+				}
 			}
-			else if(upDown === 'down') {
-				rogue.standingOn = new UpStairs(loc[0], loc[1])
+			else {
+				rogue.standingOn = new Tile(rogue.x, rogue.y);
 			}
 		};
 
@@ -556,7 +589,6 @@ var GameSpace = (function() {
 			this.createMap();
 			this.createTerrain();
 			// // called by placeCharacter
-			// currentLevel.placeStairs(upDown);
 			this.placeCharacterStairs(upDown);
 			if(upDown === 'down') {
 				this.placeStairs("up");
@@ -822,10 +854,10 @@ var GameSpace = (function() {
 		// go down a floor = ">"
 		else if(keyCode === 62) {
 			if(this.standingOn.downStairs) {
-				createNewLevel(+1);
+				createNewLevel(1);
 			}
 			else {
-				addMessage("You are not standing on stairs.");
+				addMessage("You are not standing on descending stairs.");
 			}
 		}
 		// go up a floor = "<"
@@ -834,10 +866,11 @@ var GameSpace = (function() {
 				createNewLevel(-1);
 			}
 			else {
-				addMessage("You are not standing on stairs.");
+				addMessage("You are not standing on ascending stairs.");
 			}
 		}
 
+		// only runs if a direciton was selected on keyboard
 		if(horz !== undefined) {
 			// console.log("horz: ", horz, " vert: ", vert);
 			if(this.checkNextTile(horz, vert) === 'impassable') {
@@ -850,7 +883,7 @@ var GameSpace = (function() {
 			else if(this.checkNextTile(horz, vert) === 'door'){
 				currentLevel.emptyTile(this.x + horz, this.y + vert);
 				currentLevel.findRoomLightRoom(this.x + horz, this.y + vert, currentLevel.roomList);
-				// update dungeon. Takes 2 turns to kick down a door.
+				// update dungeon. Takes a turn to kick down a door.
 				addMessage("You kick down the door. A loud noise reverberates throughout the dungeon.")
 				turnHandler();
 			}
@@ -914,7 +947,7 @@ var GameSpace = (function() {
 		
 // everything else
 	// create local 'globals'
-	var currentLevel = new Level(MAP_COLUMNS, MAP_ROWS);
+	var currentLevel = new Level(MAP_COLUMNS, MAP_ROWS, 0);
 	var rogue = new Character(1, 1);
 	var monstersActive = [];
 	var monstersAvailable = []
