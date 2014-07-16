@@ -30,7 +30,7 @@ var GameSpace = (function() {
 	// constant variables
 	var MAP_COLUMNS = 60;
 	var MAP_ROWS = 40;
-	var ROOMS_QUANTITY = 55;
+	var ROOMS_QUANTITY = 52;
 	var ROOM_MIN_DIMENSION = 4;
 	var ROOM_MAX_DIMENSION = 8;
 
@@ -83,7 +83,7 @@ var GameSpace = (function() {
 	}
 
 	var addMessage = function(text) {
-		$("#messages").prepend("<p>" + text + "</p>")
+		$("#messages").prepend("<p class='a-message'>" + text + "</p>")
 	}
 
 	var turnHandler = function () {
@@ -134,12 +134,8 @@ var GameSpace = (function() {
 	}
 
 	var createNewLevel = function(direction) {
-		// var newDepth = currentLevel.depth + direction
-		// console.log("newDepth: ", newDepth);
-		// currentLevel.depth += direction;
+		// create new level object
 		currentLevel = new Level(MAP_COLUMNS, MAP_ROWS, currentLevel.depth + direction);
-		console.log(currentLevel.depth);
-		
 
 		// player goes down
 		if(direction > 0) {
@@ -341,8 +337,6 @@ var GameSpace = (function() {
 
 		// used to check for & break infinite loops caused by randomRooms
 		this.randomRoomsCountRecursion = 0;
-		this.randomRoomsCountWhile = 0;
-
 		this.randomRooms = function(quantity) {
 			// this.randomRoomsCountRecursion++;
 			// if(this.randomRoomsCountRecursion > 10000000) {
@@ -353,12 +347,13 @@ var GameSpace = (function() {
 			var tempMap = this.map.map(clone);
 			var tempRoomList = [];
 
+			var randomRoomsCountWhile = 0;
 			var i = 0;
 			while (i < quantity) {
-				this.randomRoomsCountWhile++;
-				if(this.randomRoomsCountWhile > 10000000) {
+				randomRoomsCountWhile++;
+				if(randomRoomsCountWhile > 100000) {
 					console.log("randomRoomsWhile maxed out");
-					break;
+					return this.randomRooms(quantity);
 				}
 				var centerX = Math.floor(Math.random()*(this.columns - ROOM_MAX_DIMENSION) + ROOM_MAX_DIMENSION/2) 
 				var centerY = Math.floor(Math.random()*(this.rows - ROOM_MAX_DIMENSION) + ROOM_MAX_DIMENSION/2)
@@ -376,7 +371,7 @@ var GameSpace = (function() {
 					i++;
 				}
 			}
-
+			// console.log(randomRoomsCountWhile);
 			// console.log("tempMap: ", tempMap);
 			// console.log(tempRoomList);
 			
@@ -414,7 +409,6 @@ var GameSpace = (function() {
 		// this populates monsters on map. Currently only populates rats. Needs to work for other monsters and only populate in rooms.
 
 		this.createMonstersCount = 0;
-
 		this.createMonsters = function(quantity) {
 			var i = 0;
 			while (i < quantity) {
@@ -549,7 +543,6 @@ var GameSpace = (function() {
 			// this.map[actor.y][actor.x] = actor;
 			// this.map[actor.y - vert][actor.x - horz] = tempTile;
 			// this.updateDisplay(actor, tempTile);
-
 		}
 
 		this.drawMap = function() {
@@ -789,10 +782,22 @@ var GameSpace = (function() {
 		this.offense = this.offenseBase;
 		this.defense = this.defenseBase;
 		this.maxDamage = this.maxDamageBase;
+
+		// inventory
+		this.inventory = [];
+		this.inventory.push(new Dagger(x, y));
+		this.inventory.push(new Sword(x, y));
+		// this.equippedWeapon = this.inventory[0];
+
 	}
 
 	Character.prototype = new Actor();
 	Character.prototype.constructor = Character;
+
+	Character.prototype.equip = function(equipment) {
+		equipment.equipped = true;
+	}
+
 
 	Character.prototype.checkNextTile = function(horz, vert) {
 		var nextTile = currentLevel.map[this.y + vert][this.x + horz];
@@ -880,6 +885,14 @@ var GameSpace = (function() {
 				addMessage("You are not standing on ascending stairs.");
 			}
 		}
+		// open inventory = "i"
+		else if(keyCode === 105) {
+			console.log(this.inventory);
+		}
+		// equip from inventory = "e"
+		else if(keyCode === 101) {
+			console.log(this.inventory);
+		}
 
 		// only runs if a direciton was selected on keyboard
 		if(horz !== undefined) {
@@ -955,6 +968,68 @@ var GameSpace = (function() {
 
 	Kobold.prototype = new Monster();
 	Kobold.prototype.constructor = Kobold;
+
+// loot and equipment
+	var Item = function(x, y) {
+		this.x = x;
+		this.y = y;
+	}
+
+	Item.prototype = new Tile();
+	Item.prototype.constructor = Item;
+
+	var Equipment = function(x, y) {
+		Item.call(this, x, y);
+		this.x = x;
+		this.y = y;
+		this.equipment = true;
+		this.equipped = false;
+	}
+
+	Equipment.prototype = new Item();
+	Equipment.prototype.constructor = Equipment;
+
+	Equipment.prototype.takeOff = function() {
+		// unequip character
+	}
+
+	var Weapon = function(x, y) {
+		Equipment.call(this, x, y);
+		this.x = x;
+		this.y = y;
+		this.weapon = true;
+	}
+
+	Weapon.prototype = new Equipment();
+	Weapon.prototype.constructor = Weapon;
+
+	var Dagger = function(x, y) {
+		Weapon.call(this, x, y);
+		this.x = x;
+		this.y = y;
+		this.Dagger = true;
+
+		// combat stuff
+		this.attackMod = 2;
+		this.damageMod = 2;
+	}
+
+	Dagger.prototype = new Weapon();
+	Dagger.prototype.constructor = Dagger;
+
+	var Sword = function(x, y) {
+		Weapon.call(this, x, y);
+		this.x = x;
+		this.y = y;
+		this.sword = true;
+
+		// combat stuff
+		this.attackMod = 6;
+		this.damageMod = 6;
+	}
+
+	Sword.prototype = new Weapon();
+	Sword.prototype.constructor = Sword;
 		
 // everything else
 	// create local 'globals'
