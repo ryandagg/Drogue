@@ -133,6 +133,20 @@ var GameSpace = (function() {
 		monster.regen();
 	}
 
+	var createNewLevel = function(direction) {
+		currentLevel = new Level(MAP_COLUMNS, MAP_ROWS);
+		
+
+		// player goes down
+		if(direction > 0) {
+			currentLevel.initializeMap('down');
+		}
+		// player goes up
+		else if(direction < 0) {
+			currentLevel.initializeMap('up');
+		}
+	}
+
 // level and map related code
 	var Level = function(columns, rows) {
 		this.rows = rows;
@@ -153,15 +167,6 @@ var GameSpace = (function() {
 			}	
 			// console.log(this.map);
 		};
-
-		// this.cloneMap = function() {
-		// 	var temp = [];
-		// 	for(var i = 0; i < this.map.length; i++) {
-		// 		// console.log(this.map[i].clone());
-		// 		temp.push(clone(this.map[i]));
-		// 	}
-		// 	return temp;
-		// }
 
 		this.eachTileInRoom = function(room, func) {
 			for(var y = room.upLeftCornerY + 1; y < room.height + room.upLeftCornerY -1; y++) {
@@ -316,8 +321,14 @@ var GameSpace = (function() {
 				this.popRoom(false, array[i]);
 			}
 		}
+		this.randomRoomsCount = 0;
 
 		this.randomRooms = function(quantity) {
+			this.randomRoomsCount++;
+			if(this.randomRoomsCount > 1000) {
+				console.log("randomRooms maxed out");
+				BREAK;
+			}
 			// create a temp map to check for overlap & door problems
 			var tempMap = this.map.map(clone);
 			var tempRoomList = [];
@@ -391,37 +402,59 @@ var GameSpace = (function() {
 			// console.log(monstersActive);
 		};
 
-		this.placeStairs = function(quantity) {
+		this.placeStairs = function(upDown) {
 			var i = 0;
-			while (i < quantity) {
+			while (i < 1) {
 				var randomY = Math.floor(Math.random() * this.rows)
 				var randomX = Math.floor(Math.random() * this.columns)
 				var randomDownStairs = new DownStairs(randomX, randomY);
+				var randomUpStairs = new DownStairs(randomX, randomY);
 				if(this.map[randomY][randomX].class === 'dot') {
-					this.map[randomY][randomX] = randomDownStairs;
-					i++;
+					if(upDown === 'down') {
+						this.map[randomY][randomX] = randomDownStairs;
+						i++;
+					}
+					else if(upDown === 'up') {
+						this.map[randomY][randomX] = randomUpStairs;
+						i++;
+					}
+					
 				}
 			}
+
+			// the returned location is used in the newLevel function to place the rogue
+			return [randomX, randomY];
+
 			// console.log("placeStairs worked");
-			var j = 0;
-			while (j < quantity) {
-				var randomY = Math.floor(Math.random() * this.rows)
-				var randomX = Math.floor(Math.random() * this.columns)
-				var randomUpStairs = new UpStairs(randomX, randomY);
-				if(this.map[randomY][randomX].class === 'dot') {
-					this.map[randomY][randomX] = randomUpStairs;
-					j++;
-				}
-			}
+			// var j = 0;
+			// while (j < 1) {
+			// 	var randomY = Math.floor(Math.random() * this.rows)
+			// 	var randomX = Math.floor(Math.random() * this.columns)
+			// 	var randomUpStairs = new UpStairs(randomX, randomY);
+			// 	if(this.map[randomY][randomX].class === 'dot') {
+			// 		this.map[randomY][randomX] = randomUpStairs;
+			// 		j++;
+			// 	}
+			// }
 		}
 
-		this.placeCharacter = function() {
+		// called on initial level creation and when moving down stairs
+		this.placeCharacterStairs = function(upDown) {
+			var loc = this.placeStairs(upDown);
+			rogue.x = loc[0];
+			rogue.y = loc[1];
 			this.map[rogue.y][rogue.x] = rogue;
+			if(upDown === 'up') {
+				rogue.standingOn = new DownStairs(loc[0], loc[1])
+			}
+			else if(upDown === 'down') {
+				rogue.standingOn = new UpStairs(loc[0], loc[1])
+			}
 		};
 
 		// Currently works on doors and dots. Could potentially handle items and stairs with conditional statements.
 		this.updateDisplay = function(obj1, obj2) {
-			console.log("updateDisplay obj2", obj2);
+			// console.log("updateDisplay obj2", obj2);
 			$(pos(obj1.location())).text(obj1.text);
 			$(pos(obj1.location())).removeClass();
 			$(pos(obj1.location())).addClass(obj1.class + " tile");
@@ -518,6 +551,26 @@ var GameSpace = (function() {
 			return matrix;
 		}
 
+		this.initializeMap = function(upDown) {
+			monstersActive = [];
+			this.createMap();
+			this.createTerrain();
+			// // called by placeCharacter
+			// currentLevel.placeStairs(upDown);
+			this.placeCharacterStairs(upDown);
+			if(upDown === 'down') {
+				this.placeStairs("up");
+			}
+			else if(upDown === 'up') {
+				this.placeStairs("down");
+			}
+			// this.placeStairs(upDown);
+			this.createMonsters(30);
+			this.drawMap();
+			this.darkenRooms(this.roomList);
+			// rogue.standingOn = new Tile(rogue.x, rogue.y);
+		}
+
 	};
 // random map generation code
 	var Room = function(xCenter, yCenter, width, height, doorLocationX, doorLocationY) {
@@ -578,6 +631,7 @@ var GameSpace = (function() {
 		Tile.call(this, x, y);
 		this.text = ">"
 		this.class = "downstairs";
+		this.downStairs = true;
 		this.inspectText = "Stairs leading further into the dungeon. Are you ready for a greater challenge?";
 	}
 
@@ -592,6 +646,7 @@ var GameSpace = (function() {
 		Tile.call(this, x, y);
 		this.text = "<"
 		this.class = "upstairs";
+		this.upStairs = true;
 		this.inspectText = "Stairs leading up to an easier part of the dungeon.";
 	}
 
@@ -764,28 +819,48 @@ var GameSpace = (function() {
 			horz = 0;
 			vert = 0;
 		}
-
-		// console.log("horz: ", horz, " vert: ", vert);
-		if(this.checkNextTile(horz, vert) === 'impassable') {
-				addMessage("You shall not pass!")
+		// go down a floor = ">"
+		else if(keyCode === 62) {
+			if(this.standingOn.downStairs) {
+				createNewLevel(+1);
 			}
-		else if(this.checkNextTile(horz, vert) === 'monster') {
-			this.combatHandler(currentLevel.map[this.y + vert][this.x + horz]);
-			turnHandler();
+			else {
+				addMessage("You are not standing on stairs.");
+			}
 		}
-		else if(this.checkNextTile(horz, vert) === 'door'){
-			currentLevel.emptyTile(this.x + horz, this.y + vert);
-			currentLevel.findRoomLightRoom(this.x + horz, this.y + vert, currentLevel.roomList);
-			// update dungeon. Takes 2 turns to kick down a door.
-			addMessage("You kick down the door. A loud noise reverberates throughout the dungeon.")
-			turnHandler();
+		// go up a floor = "<"
+		else if(keyCode === 60) {
+			if(this.standingOn.upStairs) {
+				createNewLevel(-1);
+			}
+			else {
+				addMessage("You are not standing on stairs.");
+			}
 		}
-		else if(this.checkNextTile(horz, vert) === 'empty') {
-			currentLevel.updateActor(horz, vert, this);
-			turnHandler();
-		}
-		else if(this.checkNextTile(horz, vert) === 'character') {
-			turnHandler();
+
+		if(horz !== undefined) {
+			// console.log("horz: ", horz, " vert: ", vert);
+			if(this.checkNextTile(horz, vert) === 'impassable') {
+					addMessage("You shall not pass!")
+				}
+			else if(this.checkNextTile(horz, vert) === 'monster') {
+				this.combatHandler(currentLevel.map[this.y + vert][this.x + horz]);
+				turnHandler();
+			}
+			else if(this.checkNextTile(horz, vert) === 'door'){
+				currentLevel.emptyTile(this.x + horz, this.y + vert);
+				currentLevel.findRoomLightRoom(this.x + horz, this.y + vert, currentLevel.roomList);
+				// update dungeon. Takes 2 turns to kick down a door.
+				addMessage("You kick down the door. A loud noise reverberates throughout the dungeon.")
+				turnHandler();
+			}
+			else if(this.checkNextTile(horz, vert) === 'empty') {
+				currentLevel.updateActor(horz, vert, this);
+				turnHandler();
+			}
+			else if(this.checkNextTile(horz, vert) === 'character') {
+				turnHandler();
+			}
 		}
 		
 	}	
@@ -849,17 +924,8 @@ var GameSpace = (function() {
 	});
 
 	var initialize = function() {
-		// console.log("initialize called");
-		currentLevel.createMap();
-		currentLevel.mapInitialize;
-		currentLevel.createTerrain();
-		currentLevel.placeCharacter();
-		currentLevel.placeStairs(1);
-		currentLevel.createMonsters(30);
-		currentLevel.drawMap();
-		// console.log(currentLevel.roomList);
-		currentLevel.darkenRooms(currentLevel.roomList);
-		
+		console.log("initialize called");
+		currentLevel.initializeMap("up");
 	}
 
 	return {

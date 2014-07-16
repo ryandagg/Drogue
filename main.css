@@ -42,10 +42,6 @@ td {
   position: relative;
 }
 
-.hidden {
-  display: none;
-}
-
 .character {
   z-index: 2;
   font-size: 1.205em;
@@ -74,6 +70,10 @@ td {
   font-size: 1.6em;
   padding-left: 0.03em;
   color: brown;
+}
+
+.upstairs, .downstairs {
+  font-size: 1.4em;
 }
 
 .text-popup {
