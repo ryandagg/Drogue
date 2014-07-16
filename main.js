@@ -288,7 +288,7 @@ var GameSpace = (function() {
 			})
 		}
 
-		// Iterates through an array of room objects and finds a door with matching location. Calls popRoom to light room after door open. Location taken from keyhandler.
+		// Iterates through an array of room objects and finds a door or rogue with matching location. Calls popRoom to light room after door open. Location taken from keyhandler.
 		this.findRoomLightRoom = function(x, y, array) {
 			var poppedIndex;
 			var poppedRoom;
@@ -327,16 +327,28 @@ var GameSpace = (function() {
 			}
 		}
 
+		this.lightRoomRogueIn = function(array) {
+			var that = this;
+			// console.log(array);
+			for(var i = 0; i < array.length; i++) {
+				this.eachTileInRoom(array[i], function(x, y) {
+					if(rogue.x === x && rogue.y === y) {
+						that.popRoom(true, array[i]);
+					}
+				})
+			}
+		}
+
 		// used to check for & break infinite loops caused by randomRooms
 		this.randomRoomsCountRecursion = 0;
 		this.randomRoomsCountWhile = 0;
 
 		this.randomRooms = function(quantity) {
-			this.randomRoomsCountRecursion++;
-			if(this.randomRoomsCountRecursion > 10000000) {
-				alert("randomRoomsRecursion maxed out");
-				// break;
-			}
+			// this.randomRoomsCountRecursion++;
+			// if(this.randomRoomsCountRecursion > 10000000) {
+			// 	alert("randomRoomsRecursion maxed out");
+			// 	// break;
+			// }
 			// create a temp map to check for overlap & door problems
 			var tempMap = this.map.map(clone);
 			var tempRoomList = [];
@@ -505,7 +517,6 @@ var GameSpace = (function() {
 			this.map[y][x] = new Tile(x, y);
 			this.updateDisplay(this.map[y][x]);
 		}
-
 		
 		// moves characters & monsters around map & calls updateDisplay
 		this.updateActor = function(horz, vert, actor) {
@@ -600,7 +611,7 @@ var GameSpace = (function() {
 			this.createMonsters(30);
 			this.drawMap();
 			this.darkenRooms(this.roomList);
-			// rogue.standingOn = new Tile(rogue.x, rogue.y);
+			this.lightRoomRogueIn(this.roomList);
 		}
 
 	};

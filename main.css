@@ -42,6 +42,10 @@ td {
   position: relative;
 }
 
+.hidden {
+  display: none;
+}
+
 .character {
   z-index: 2;
   font-size: 1.205em;
