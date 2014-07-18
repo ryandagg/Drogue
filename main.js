@@ -1273,7 +1273,7 @@ var GameSpace = (function() {
 		this.x = x;
 		this.y = y;
 		this.text = "~";
-		this.text = "scroll";
+		this.class = "scroll";
 	}
 
 	Scroll.prototype = new Item();
