@@ -28,11 +28,12 @@ else if(checkNextTile(horz, vert) === 'door'){
 var GameSpace = (function() {
 // helper funcitons
 	// constant variables
-	var MAP_COLUMNS = 60;
-	var MAP_ROWS = 40;
-	var ROOMS_QUANTITY = 52;
+	var MAP_COLUMNS = 30;
+	var MAP_ROWS = 20;
+	var ROOMS_QUANTITY = 16;
 	var ROOM_MIN_DIMENSION = 4;
-	var ROOM_MAX_DIMENSION = 8;
+	var ROOM_MAX_DIMENSION = 6;
+	var MONSTER_PER_LEVEL = 12;
 
 	// formats location of object to reference tile id
 	var pos = function(loc) {
@@ -587,7 +588,7 @@ var GameSpace = (function() {
 				this.placeStairs("down");
 			}
 			// this.placeStairs(upDown);
-			this.createMonsters(30);
+			this.createMonsters(MONSTER_PER_LEVEL);
 			// // the line below is used for texting new items & inventory
 			// this.map[rogue.y + 1][rogue.x + 1] = new Dagger(1, 1);
 			this.drawMap();
@@ -1370,14 +1371,5 @@ $(document).on('ready', function() {
 
 		
 	})
-
-	// var resize = function() {
-	//    // Set font size to scale with square height
-	//    $('.class-to-scale-font').css('font-size', $('.square').height()*1.06)
-	 
-	//    // Set line height to scale with font size so centering doesn't break
-	//    $('.square').css('line-height', 0.75*parseInt($('.board').css('font-size'))+'px')
-	// }
-
 	
 });
