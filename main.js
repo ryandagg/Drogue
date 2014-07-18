@@ -588,7 +588,8 @@ var GameSpace = (function() {
 			}
 			// this.placeStairs(upDown);
 			this.createMonsters(30);
-			this.map[rogue.y + 1][rogue.x + 1] = new Dagger(1, 1);
+			// // the line below is used for texting new items & inventory
+			// this.map[rogue.y + 1][rogue.x + 1] = new Dagger(1, 1);
 			this.drawMap();
 			this.darkenRooms(this.roomList);
 			this.lightRoomRogueIn(this.roomList);
@@ -739,7 +740,12 @@ var GameSpace = (function() {
 				if(defender === rogue) {
 					currentLevel = new Level(MAP_COLUMNS, MAP_ROWS);
 					$("#game-window").empty();
-					$("#game-window").append("<div id='dead'<YOU SUCK AND YOU'RE DEAD. lolz</div>");
+					$("#game-wrapper").prepend(
+						"<div id='dead'>" +
+							"YOU SUCK AND YOU'RE DEAD. lolz" +
+							"<br>" +
+							"You had " + rogue.gold + " gold." +
+							"</div>");
 
 				}
 				else if(defender.monster) {
@@ -997,6 +1003,7 @@ var GameSpace = (function() {
 				// tunnel through wall = "T"
 				else if(keyCode === 84) {
 					this.tunneling = true;
+					addMessage("--- Tunnel in which direction? ---");
 				}
 			}
 
@@ -1038,6 +1045,7 @@ var GameSpace = (function() {
 					this.gold += currentLevel.map[this.y + vert][this.x + horz].quantity;
 					currentLevel.map[this.y + vert][this.x + horz] = new Tile(this.x + horz, this.y + vert);
 					currentLevel.updateActor(horz, vert, this);
+					$("#gold").text("Gold: " + this.gold);
 					turnHandler();
 				}
 				else if(this.checkNextTile(horz, vert) === 'item') {
