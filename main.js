@@ -88,7 +88,7 @@ var GameSpace = (function() {
 
 	var turnHandler = function () {
 		totalTurns++;
-		addMessage("------------------- Turn " + totalTurns + " -------------------");
+		addMessage("----------- Turn " + totalTurns + " -----------");
 		for(var i = 0; i < monstersActive.length; i++) {
 			monsterTurn(monstersActive[i]);
 		}
@@ -96,7 +96,8 @@ var GameSpace = (function() {
 
 		// character regen
 		rogue.regen();
-		$("#HUD").text("HP: " + Math.floor(rogue.health));
+		$("#hp").text("HP: " + Math.floor(rogue.health));
+		rogue.drawInventory();
 	}
 
 	// todo 
@@ -145,6 +146,9 @@ var GameSpace = (function() {
 		else if(direction < 0) {
 			currentLevel.initializeMap('down');
 		}
+		resizeTiles();
+		resizeText();
+
 	}
 
 // level and map related code
@@ -371,7 +375,7 @@ var GameSpace = (function() {
 					i++;
 				}
 			}
-			// console.log(randomRoomsCountWhile);
+			console.log(randomRoomsCountWhile);
 			// console.log("tempMap: ", tempMap);
 			// console.log(tempRoomList);
 			
@@ -408,21 +412,23 @@ var GameSpace = (function() {
 
 		// this populates monsters on map. Currently only populates rats. Needs to work for other monsters and only populate in rooms.
 
-		this.createMonstersCount = 0;
 		this.createMonsters = function(quantity) {
 			var i = 0;
 			while (i < quantity) {
-				this.createMonstersCount++;
-				if(this.createMonstersCount > 1000) {
-					console.log("this.createMonstersCount break");
-					break;
-				}
 				var randomY = Math.floor(Math.random() * this.rows)
 				var randomX = Math.floor(Math.random() * this.columns)
-				var randomRat = new Rat(randomX, randomY);
+				if(this.depth === 0) {
+					var randomMonster = new Rat(randomX, randomY);
+				}
+				else if(this.depth === 1) {
+					var randomMonster = new Kobold(randomX, randomY);
+				}
+				else if(this.depth === 2) {
+					var randomMonster = new Goblin(randomX, randomY);
+				}
 				if(this.map[randomY][randomX].class === 'dot') {
-					this.map[randomY][randomX] = randomRat;
-					monstersActive.push(randomRat);
+					this.map[randomY][randomX] = randomMonster;
+					monstersActive.push(randomMonster);
 					i++;
 				}
 			}
@@ -458,17 +464,6 @@ var GameSpace = (function() {
 			// the returned location is used in the newLevel function to place the rogue
 			return [randomX, randomY];
 
-			// console.log("placeStairs worked");
-			// var j = 0;
-			// while (j < 1) {
-			// 	var randomY = Math.floor(Math.random() * this.rows)
-			// 	var randomX = Math.floor(Math.random() * this.columns)
-			// 	var randomUpStairs = new UpStairs(randomX, randomY);
-			// 	if(this.map[randomY][randomX].class === 'dot') {
-			// 		this.map[randomY][randomX] = randomUpStairs;
-			// 		j++;
-			// 	}
-			// }
 		}
 
 		// called on initial level creation and when moving down stairs
@@ -534,15 +529,6 @@ var GameSpace = (function() {
 			// udpates display
 			this.updateDisplay(actor, tempTile);
 
-			// // this is saved incase the code above breaks. It was written before Actor.standingOn was implemented.
-			// var tempTile = new Tile(actor.x , actor.y); 
-			// // change the location of the actor without moving in map
-			// actor.x += horz;
-			// actor.y += vert;
-			// // move the actor in map 
-			// this.map[actor.y][actor.x] = actor;
-			// this.map[actor.y - vert][actor.x - horz] = tempTile;
-			// this.updateDisplay(actor, tempTile);
 		}
 
 		this.drawMap = function() {
@@ -602,6 +588,7 @@ var GameSpace = (function() {
 			}
 			// this.placeStairs(upDown);
 			this.createMonsters(30);
+			this.map[rogue.y + 1][rogue.x + 1] = new Dagger(1, 1);
 			this.drawMap();
 			this.darkenRooms(this.roomList);
 			this.lightRoomRogueIn(this.roomList);
@@ -624,7 +611,7 @@ var GameSpace = (function() {
 	var Tile = function(x, y) {
 		this.x = x;
 		this.y = y;
-		this.text = "."
+		this.text = "·";
 		this.class = "dot"
 		this.impassable = false
 		this.inspectText = "A dank dungeon floor.";
@@ -750,11 +737,17 @@ var GameSpace = (function() {
 				addMessage("The " + this.class + " killed the " + defender.class + "!");
 				currentLevel.emptyTile(defender.x, defender.y);
 				if(defender === rogue) {
-					// end game
+					currentLevel = new Level(MAP_COLUMNS, MAP_ROWS);
+					$("#game-window").empty();
+					$("#game-window").append("<div id='dead'<YOU SUCK AND YOU'RE DEAD. lolz</div>");
+
 				}
 				else if(defender.monster) {
 					// console.log("monster dead")
 					defender.removeActor(monstersActive);
+					var loot = defender.lootDrop();
+					currentLevel.map[defender.y][defender.x] = loot;
+					currentLevel.updateDisplay(defender, loot);
 				}
 			}
 			else {
@@ -775,6 +768,9 @@ var GameSpace = (function() {
 		this.class = "character";
 		this.character = true;
 		this.inspectText = "A badass MFer.";
+		this.inventoryOpen = false;
+		this.inventoryFocus = null;
+		this.tunneling = false;
 
 		// combat stats
 		this.maxHealth = this.healthBase;
@@ -784,20 +780,97 @@ var GameSpace = (function() {
 		this.maxDamage = this.maxDamageBase;
 
 		// inventory
-		this.inventory = [];
-		this.inventory.push(new Dagger(x, y));
-		this.inventory.push(new Sword(x, y));
-		// this.equippedWeapon = this.inventory[0];
-
+		this.gold = 0;
+		this.inventory = {a: null, b: null, c: null, d: null, e: null, f: null, g: null, h: null, i: null, j: null, k: null, l: null, m: null, n: null, o: null, p: null, q: null, r: null, s: null, t: null, u: null, v: null, x: null, y: null, z: null};
+		this.inventory.a = new Dagger(x, y, false);
+		this.inventory.b = new LeatherArmor(x, y, false);
 	}
 
 	Character.prototype = new Actor();
 	Character.prototype.constructor = Character;
 
-	Character.prototype.equip = function(equipment) {
-		equipment.equipped = true;
+	Character.prototype.openInventorySlot = function() {
+		for(var i in this.inventory) {
+			console.log("this.inventory.i: ", this.inventory.i)
+			if(this.inventory[i] === null) {
+				console.log("i: ", i);
+				return i;
+			}
+		}
+		return false;
 	}
 
+	Character.prototype.inventoryHandler = function(keyCode) {
+		var closeInventoryOnAction = function(that) {
+			that.inventoryFocus = null;
+			that.inventoryOpen = false;
+			that.drawInventory();
+			turnHandler();
+		}
+
+		if(keyCode >= 97 && keyCode <= 122) {
+			var keyCheck = {97: "a", 98: "b", 99: "c", 100: "d", 101: "e", 102: "f", 103: "g", 104: "h", 105: "i", 106: "j", 107: "k", 108: "l", 109: "m", 110: "n", 111: "o", 112: "p", 113: "q", 114: "r", 115: "s", 116: "t", 117: "u", 118: "v", 119: "w",  120: "x", 121: "x", 122: "z"};
+			
+			if(this.inventoryFocus) {
+				// checks if 'e' is press and if the item is equipment
+				if(keyCode === 101) {
+					if(this.inventoryFocus instanceof Equipment) {
+						this.equip(this.inventoryFocus);
+						addMessage("You have " + this.inventoryFocus + ".");
+						closeInventoryOnAction(this);
+					}
+					else {
+						addMessage("That is not equipment");
+						return this.inventoryHandler();
+					}
+				}
+				
+				// checks if 'u' is pressed and if it's equipment
+				else if(keyCode === 117) {
+					if(this.inventoryFocus instanceof Equipment) {
+						this.unEquip(this.inventoryFocus);
+						closeInventoryOnAction(this);
+					}
+					else {
+						addMessage("That is not equipment");
+						return this.inventoryHandler();
+					}
+				}
+			}
+			else {
+				var item = keyCheck[keyCode];
+				console.log(item);
+				if(this.inventory[item] !== null) {
+					addMessage("Do what with the " + this.inventory[item].toString() + "?");
+					addMessage("drop (d), equip (e), use (u), unequip (u)");
+					this.inventoryFocus = this.inventory[item];
+					console.log(this.inventoryFocus instanceof Equipment);
+				}
+				else {
+					addMessage("That is not an item");
+					return this.inventoryHandler();
+				}
+			}
+		}
+		else {
+			addMessage("That is not an item");
+			return this.inventoryHandler();
+		}
+	}
+
+	Character.prototype.equip = function(equipment) {
+		equipment.equipped = true;
+		this.offense += equipment.offenseMod;
+		this.maxDamage += equipment.damageMod;
+		this.damage += equipment.defenseMod
+	}
+
+	Character.prototype.unEquip = function(equipment) {
+		equipment.equipped = false;
+		this.offense -= equipment.offenseMod;
+		this.maxDamage -= equipment.damageMod;
+		this.defense -= equipment.defenseMod
+	}
 
 	Character.prototype.checkNextTile = function(horz, vert) {
 		var nextTile = currentLevel.map[this.y + vert][this.x + horz];
@@ -813,6 +886,13 @@ var GameSpace = (function() {
 		else if(nextTile.character) {
 			return "character";
 		}
+		// this must come before gold or will add gold to inventory
+		else if(nextTile instanceof Gold) {
+			return "gold";
+		}
+		else if(nextTile instanceof Item) {
+			return "item";
+		}
 		else {
 			return 'empty';
 		}
@@ -820,107 +900,175 @@ var GameSpace = (function() {
 
 	// todo put in character class
 	Character.prototype.keyHandler = function(keyCode) {
-		var horz;
-		var vert;
-		// "right = l"
-		if(keyCode === 108) {
-			horz = 1;
-			vert = 0;
+		// console.log('working?')
+
+		// quit inventory = "Q"
+		if(keyCode === 81) {
+			this.inventoryOpen = false;
+			this.inventoryFocus = null;
 		}
-		// "left = h"
-		else if(keyCode === 104) {
-			horz = -1;
-			vert = 0;
-		}
-		// "down = j"
-		else if(keyCode === 106) {
-			horz = 0;
-			vert = 1;
-		}
-		// "up = k"
-		else if(keyCode === 107) {
-			horz = 0;
-			vert = -1;
-		}
-		// "upright = u"
-		else if(keyCode === 117) {
-			horz = 1;
-			vert = -1;
-		}
-		// "upleft = y"
-		else if(keyCode === 121) {
-			horz = -1;
-			vert = -1;
-		}
-		// "downright = n"
-		else if(keyCode === 110) {
-			horz = 1;
-			vert = 1;
-		}
-		// "downleft = b"
-		else if(keyCode === 98) {
-			horz = -1;
-			vert = 1;
-		}
-		// wait a turn = "."
-		else if(keyCode === 46) {
-			horz = 0;
-			vert = 0;
-		}
-		// go down a floor = ">"
-		else if(keyCode === 62) {
-			if(this.standingOn.downStairs) {
-				createNewLevel(1);
+		if(!this.inventoryOpen || this.tunneling) {
+			var horz;
+			var vert;
+			// "right = l"
+			if(keyCode === 108) {
+				horz = 1;
+				vert = 0;
 			}
-			else {
-				addMessage("You are not standing on descending stairs.");
+			// "left = h"
+			else if(keyCode === 104) {
+				horz = -1;
+				vert = 0;
 			}
-		}
-		// go up a floor = "<"
-		else if(keyCode === 60) {
-			if(this.standingOn.upStairs) {
-				createNewLevel(-1);
+			// "down = j"
+			else if(keyCode === 106) {
+				horz = 0;
+				vert = 1;
 			}
-			else {
-				addMessage("You are not standing on ascending stairs.");
+			// "up = k"
+			else if(keyCode === 107) {
+				horz = 0;
+				vert = -1;
 			}
-		}
-		// open inventory = "i"
-		else if(keyCode === 105) {
-			console.log(this.inventory);
-		}
-		// equip from inventory = "e"
-		else if(keyCode === 101) {
-			console.log(this.inventory);
+			// "upright = u"
+			else if(keyCode === 117) {
+				horz = 1;
+				vert = -1;
+			}
+			// "upleft = y"
+			else if(keyCode === 121) {
+				horz = -1;
+				vert = -1;
+			}
+			// "downright = n"
+			else if(keyCode === 110) {
+				horz = 1;
+				vert = 1;
+			}
+			// "downleft = b"
+			else if(keyCode === 98) {
+				horz = -1;
+				vert = 1;
+			}
+			// wait a turn = "."
+			else if(keyCode === 46) {
+				horz = 0;
+				vert = 0;
+				this.tunneling = false;
+			}
+			if(!this.tunneling) {
+
+				// go down a floor = ">"
+				if(keyCode === 62) {
+					if(this.standingOn.downStairs) {
+						createNewLevel(1);
+					}
+					else {
+						addMessage("You are not standing on descending stairs.");
+					}
+				}
+				// go up a floor = "<"
+				else if(keyCode === 60) {
+					if(this.standingOn.upStairs) {
+						createNewLevel(-1);
+					}
+					else {
+						addMessage("You are not standing on ascending stairs.");
+					}
+				}
+				// open inventory = "i"
+				else if(keyCode === 105) {
+					this.inventoryOpen = true;
+					addMessage("------INVENTORY OPEN------");
+					addMessage("(close with 'Q')")
+					addMessage("Interact with which item?");
+					// this.inventoryHandler(keyCode);
+				}
+				// // equip from inventory = "e"
+				// else if(keyCode === 101) {
+				// 	console.log(this.inventory);
+				// }
+				// rest 100 turns = "R"
+				else if(keyCode === 82) {
+					for(var i = 0; i < 100; i++) {
+						turnHandler();
+					}
+				}
+				// tunnel through wall = "T"
+				else if(keyCode === 84) {
+					this.tunneling = true;
+				}
+			}
+
+			// only runs if a direciton was selected on keyboard
+			if(horz !== undefined) {
+				// console.log("horz: ", horz, " vert: ", vert);
+
+				// this must go before normal walls while not tunelling
+				if(this.checkNextTile(horz, vert) === 'impassable' && this.tunneling) {
+						for(var i = 0; i < 20; i++) {
+							turnHandler();
+						}
+						addMessage("You dig through the wall with your pick.");
+						currentLevel.emptyTile(this.x + horz, this.y + vert);
+						this.tunneling = false;
+					}
+				else if(this.checkNextTile(horz, vert) === 'impassable') {
+						addMessage("You shall not pass!")
+					}
+				else if(this.checkNextTile(horz, vert) === 'monster') {
+					this.combatHandler(currentLevel.map[this.y + vert][this.x + horz]);
+					turnHandler();
+				}
+				else if(this.checkNextTile(horz, vert) === 'door'){
+					currentLevel.emptyTile(this.x + horz, this.y + vert);
+					currentLevel.findRoomLightRoom(this.x + horz, this.y + vert, currentLevel.roomList);
+					// update dungeon. Takes a turn to kick down a door.
+					addMessage("You kick down the door. A loud noise reverberates throughout the dungeon.")
+					turnHandler();
+				}
+				else if(this.checkNextTile(horz, vert) === 'empty') {
+					currentLevel.updateActor(horz, vert, this);
+					turnHandler();
+				}
+				else if(this.checkNextTile(horz, vert) === 'character') {
+					turnHandler();
+				}
+				else if(this.checkNextTile(horz, vert) === 'gold') {
+					this.gold += currentLevel.map[this.y + vert][this.x + horz].quantity;
+					currentLevel.map[this.y + vert][this.x + horz] = new Tile(this.x + horz, this.y + vert);
+					currentLevel.updateActor(horz, vert, this);
+					turnHandler();
+				}
+				else if(this.checkNextTile(horz, vert) === 'item') {
+					if(this.openInventorySlot()) {
+						var slot = this.openInventorySlot()
+						this.inventory[slot] = currentLevel.map[this.y + vert][this.x + horz];
+						currentLevel.map[this.y + vert][this.x + horz] = new Tile(this.x + horz, this.y + vert);
+						currentLevel.updateActor(horz, vert, this);
+						turnHandler();
+					}
+					else {
+						currentLevel.updateActor(horz, vert, this);
+						turnHandler();
+					}
+				}
+			}
+		}	
+		else {
+			this.inventoryHandler(keyCode);
 		}
 
-		// only runs if a direciton was selected on keyboard
-		if(horz !== undefined) {
-			// console.log("horz: ", horz, " vert: ", vert);
-			if(this.checkNextTile(horz, vert) === 'impassable') {
-					addMessage("You shall not pass!")
-				}
-			else if(this.checkNextTile(horz, vert) === 'monster') {
-				this.combatHandler(currentLevel.map[this.y + vert][this.x + horz]);
-				turnHandler();
-			}
-			else if(this.checkNextTile(horz, vert) === 'door'){
-				currentLevel.emptyTile(this.x + horz, this.y + vert);
-				currentLevel.findRoomLightRoom(this.x + horz, this.y + vert, currentLevel.roomList);
-				// update dungeon. Takes a turn to kick down a door.
-				addMessage("You kick down the door. A loud noise reverberates throughout the dungeon.")
-				turnHandler();
-			}
-			else if(this.checkNextTile(horz, vert) === 'empty') {
-				currentLevel.updateActor(horz, vert, this);
-				turnHandler();
-			}
-			else if(this.checkNextTile(horz, vert) === 'character') {
-				turnHandler();
-			}
-		}
-		
 	}	
+
+	Character.prototype.drawInventory = function() {
+		$("#inventory").empty();
+		for(var i in this.inventory) {
+			$("#inventory").append(i + ": " + this.inventory[i] + "<br>");
+		}
+		// uncomment this to throw the "call initialize on ready twice bug"
+		// $("#inventory").append("blah" + ": " + this.inventory[blah] + "<br>");
+	}
 
 // monster related code
 	var Monster = function(x, y) {
@@ -930,6 +1078,15 @@ var GameSpace = (function() {
 
 	Monster.prototype = new Actor();
 	Monster.prototype.constructor = Monster;
+
+	Monster.prototype.lootDrop = function() {
+		if(Math.random() * 100 < this.treasureQuality) {
+			return new EnchantScroll(this.x, this.y);
+		}
+		else {
+			return new Gold(this.x, this.y, this.treasureQuality);
+		}
+	}
 
 	var Rat = function(x, y) {
 		Monster.call(this, x, y);
@@ -952,22 +1109,41 @@ var GameSpace = (function() {
 
 	var Kobold = function(x, y) {
 		Monster.call(this, x, y);
-		Tile.call(this, x, y)
+		Tile.call(this, x, y);
 		this.class = 'kobold'
 		this.text = 'k'
 		this.inspectText = "A short, reptilian humanoid. It walks on two legs and wants to stab you."
 
 		// combat stats
-		this.maxHealth = this.healthBase/8;
+		this.maxHealth = this.healthBase/5;
 		this.health = this.maxHealth;
-		this.offense = this.offenseBase/8;
-		this.defense = this.defenseBase/8;
-		this.maxDamage = this.maxDamageBase/8;
+		this.offense = this.offenseBase;
+		this.defense = this.defenseBase/2;
+		this.maxDamage = this.maxDamageBase/3;
 		this.treasureQuality = 2;
 	}
 
 	Kobold.prototype = new Monster();
 	Kobold.prototype.constructor = Kobold;
+
+	var Goblin = function(x, y) {
+		Monster.call(this, x, y);
+		Tile.call(this, x, y);
+		this.class = 'goblin'
+		this.text = 'g'
+		this.inspectText = "A short, twisted version of a man."
+
+		// combat stats
+		this.maxHealth = this.healthBase;
+		this.health = this.maxHealth;
+		this.offense = this.offenseBase;
+		this.defense = this.defenseBase;
+		this.maxDamage = this.maxDamageBase;
+		this.treasureQuality = 3;
+	}
+
+	Goblin.prototype = new Monster();
+	Goblin.prototype.constructor = Goblin;
 
 // loot and equipment
 	var Item = function(x, y) {
@@ -978,58 +1154,131 @@ var GameSpace = (function() {
 	Item.prototype = new Tile();
 	Item.prototype.constructor = Item;
 
-	var Equipment = function(x, y) {
+	Item.prototype.toString = function() {
+	    return this.label;
+	}
+
+	var Equipment = function(x, y, equipped) {
 		Item.call(this, x, y);
 		this.x = x;
 		this.y = y;
-		this.equipment = true;
-		this.equipped = false;
+		this.equipped = equipped || false;
+		this.enchantLevel = 0;
+		this.offenseMod = 0;
+		this.damageMod = 0;
+		this.defenseMod = 0;
 	}
 
 	Equipment.prototype = new Item();
 	Equipment.prototype.constructor = Equipment;
 
-	Equipment.prototype.takeOff = function() {
-		// unequip character
+	Equipment.prototype.toString = function() {
+		if(this.equipped) {
+	    	return "equipped " + this.label + " " + this.enchantLevel;
+		}
+		else {
+	    	return this.label + " " + this.enchantLevel;
+		}
 	}
 
-	var Weapon = function(x, y) {
-		Equipment.call(this, x, y);
+	var Weapon = function(x, y, equipped) {
+		Equipment.call(this, x, y, equipped);
 		this.x = x;
 		this.y = y;
 		this.weapon = true;
+		this.text = "^"
+		this.class = "weapon"
 	}
 
 	Weapon.prototype = new Equipment();
 	Weapon.prototype.constructor = Weapon;
 
-	var Dagger = function(x, y) {
-		Weapon.call(this, x, y);
+	var Dagger = function(x, y, equipped) {
+		Weapon.call(this, x, y, equipped);
 		this.x = x;
 		this.y = y;
-		this.Dagger = true;
+		this.label = "Dagger"
 
 		// combat stuff
-		this.attackMod = 2;
+		this.offenseMod = 10;
 		this.damageMod = 2;
 	}
 
 	Dagger.prototype = new Weapon();
 	Dagger.prototype.constructor = Dagger;
 
-	var Sword = function(x, y) {
-		Weapon.call(this, x, y);
+	var Sword = function(x, y, equipped) {
+		Weapon.call(this, x, y, equipped);
 		this.x = x;
 		this.y = y;
-		this.sword = true;
+		this.label = "Sword"
 
 		// combat stuff
-		this.attackMod = 6;
+		this.offenseMod = 5;
 		this.damageMod = 6;
 	}
 
 	Sword.prototype = new Weapon();
 	Sword.prototype.constructor = Sword;
+// armor
+	var Armor = function(x, y, equipped) {
+		Equipment.call(this, x, y, equipped);
+		this.x = x;
+		this.y = y;
+		this.text = ")";
+		this.class = "armor";
+	}
+
+	Armor.prototype = new Equipment();
+	Armor.prototype.constructor = Armor;
+
+	var LeatherArmor = function(x, y, equipped) {
+		Armor.call(this, x, y, equipped);
+		this.x = x;
+		this.y = y;
+		this.label = "Leather Armor"
+
+		// combat stuff
+		this.defenseMod = 2;
+	}
+
+	LeatherArmor.prototype = new Armor();
+	LeatherArmor.prototype.constructor = LeatherArmor;
+// gold
+
+	var Gold = function(x, y, quantity) {
+		Item.call(this, x, y);
+		this.x = x;
+		this.y = y;
+		this.text = "$";
+		this.class = "gold";
+		this.quantity = quantity;
+	}
+
+	Gold.prototype = new Item();
+	Gold.prototype.constructor = Gold;
+
+// scrolls
+	var Scroll = function(x, y) {
+		Item.call(this, x, y);
+		this.x = x;
+		this.y = y;
+		this.text = "~";
+		this.text = "scroll";
+	}
+
+	Scroll.prototype = new Item();
+	Scroll.prototype.constructor = Scroll;
+
+	var EnchantScroll = function(x, y) {
+		Item.call(this, x, y);
+		this.x = x;
+		this.y = y;
+		this.label = "Scroll of enchantment";
+	}
+
+	EnchantScroll.prototype = new Item();
+	EnchantScroll.prototype.constructor = EnchantScroll;
 		
 // everything else
 	// create local 'globals'
@@ -1045,6 +1294,8 @@ var GameSpace = (function() {
 	var initialize = function() {
 		console.log("initialize called");
 		currentLevel.initializeMap("up");
+		rogue.drawInventory();
+		
 	}
 
 	return {
@@ -1054,15 +1305,39 @@ var GameSpace = (function() {
 		clickText: clickText,
 		currentLevel: currentLevel,
 	}
-
 })();
+
+var resizeTiles = function() {
+		// var winSize = Math.min($(window).width(), $(window).height()) * 0.85;
+		var winHeight = $(window).height() * 0.85
+		var winWidth = $(window).width() * 0.75
+		$(".tile").width(winWidth / GameSpace.currentLevel.columns);
+		$(".tile").height(winHeight / GameSpace.currentLevel.rows);
+
+	}
+
+var resizeText = function() {
+	// Set font size to scale with square height
+	$('.scale-font').css('font-size', $('.tile').height()*1.05);
+}
 
 // jquery event handlers
 $(document).on('ready', function() {
-	GameSpace.initialize();
+	// there is some strange bug where an error occuring after intitialize is called will call initilize twice. Not sure if it's in jQuery or my code. This stops the infinite loop that occurs after this bug.
+	try {
+		GameSpace.initialize();
+	}
+	catch(err) {
+		console.log("initialize failed");
+		setTimeout(function() {
+			throw err;
+		},100) 
+	}
+
 	// keyboard handler
+	
 	$(document).keypress(function(e) {
-		// console.log("charCode: ", e.charCode);
+		console.log(e.charCode);
 		GameSpace.rogue.keyHandler(e.charCode);
 	});
 
@@ -1077,4 +1352,24 @@ $(document).on('ready', function() {
 	$(document).on("click", ".close-popup", function() {
 		$(".text-popup").remove();
 	})
+
+
+	resizeTiles();
+	resizeText();
+	$(window).resize(function() {
+		resizeTiles();
+		resizeText();
+
+		
+	})
+
+	// var resize = function() {
+	//    // Set font size to scale with square height
+	//    $('.class-to-scale-font').css('font-size', $('.square').height()*1.06)
+	 
+	//    // Set line height to scale with font size so centering doesn't break
+	//    $('.square').css('line-height', 0.75*parseInt($('.board').css('font-size'))+'px')
+	// }
+
+	
 });

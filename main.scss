@@ -1,33 +1,53 @@
 $tileBaseColor: black;
-$gameHeight: 1000px;
-$tileWidth: $gameHeight/60;
-$tileHeight: $gameHeight/40*1.1;
+// $gameWidth: 900px;
+// $columns: 60;
+// $tileWidth: $gameWidth/$columns;
+// $tileHeight: $gameWidth/40*1.1;
 
 .main-wrapper {
-
+	
 }
 
 body {
-	margin: 2%;
+	margin: 1%;
+}
+
+#game-wrapper {
+	// display: inline-block;
+	width: 100%;
+
 }
 
 #game-window {
-	height: $gameHeight;
+	// display: inline-block;
+	float: left;
+	// width: $gameWidth;
 	// margin: 2%;
+	text-align: center;
+	vertical-align: middle;
 
 }
 
 #HUD {
-	display: inline-block;
-	margin-bottom: 1%;
+	padding: 1%;
+	// float: left;
+	// display: inline-block;
+	// margin-bottom: 1%;
 	background-color: #eee;
-	height: 5%;
+	// height: 50%;
+	// width: 12%;
+	word-wrap: break-word;
+	// overflow: hidden;
+	vertical-align: top;
+	font-family: "Courier", serif;
+	overflow: hidden;
+
 }
 
 #messages {
 	// display: block;
-	height: 120px;
-	width: $gameHeight;
+	height: 300px;
+	// width: $gameWidth +200;
 	background-color: #eee;
 	color: black;
 	overflow-y: scroll;
@@ -44,66 +64,82 @@ table {
 }
 
 td {
-	height: 20px;
+	// height: 20px;
 	text-align: center;
-	width: 20px;
-	border: 1px solid #aaa;
+	// width: 20px;
+	border: 1px solid #555;
+}
+
+#dead {
+	height: 100%;
+	widows: 1000px;
+	color: red;
 }
 
 .tile {
-	width: $tileWidth;
-	height: $tileHeight;
+	// width: $tileWidth;
+	// height: $tileHeight;
 	// -webkit-box-sizing: border-box; 
 	// box-sizing: border-box;
-	position: relative;
-	// overflow: hidden;
+	position: relative; //needed for text popup on click
+	overflow: hidden;
 	// position: relative;
-}
 
-.hidden {
-	display: none;
 }
 
 // specific tiles
 .character {
-	z-index: 2;
+	// z-index: 2;
 	// padding-left: 0.10em;
 	// padding-top: 0.10em;
-	font-size: 1.205em;
-	line-height: 1.5;
+	// font-size: 1.205em;
+	// line-height: 1.5;
+	color: #0066FF;
+}
+
+.gold {
+	color: gold;
 }
 
 .wall {
 	color: #777;
-	padding-left: 0.05em;
-	font-size: 1.7em;
+	// padding-left: 0.05em;
+	// font-size: 1.7em;
 }
 
 .dot {
 	color: #fff;
-	padding-left: 0.10em;
+	// padding-left: 0.10em;
 	// padding-bottom: 2
 
 }
 
 .rat {
-	font-size: 1.8em;
-	padding-left: 0.07em;
-	line-height: 0.9;
+	// font-size: 1.8em;
+	// padding-left: 0.07em;
+	// line-height: 0.9;
 	color: #996600
 }
 
 .door {
-	font-size: 1.6em;
-	// line-height: 1.4;
+	// font-size: 1.6em;
+	// line-height: -1.4;
 	// padding-bottom: 2em;
-	padding-left: 0.03em;
+	// padding-left: 0.03em;
 	color: brown;
 
 }
 
+.kobold {
+	color: #003300;
+}
+
+.goblin {
+	color: #CC3300;
+}
+
 .upstairs, .downstairs {
-	font-size: 1.4em;
+	// font-size: 1.4em;
 }
 
 // click to inspect popup
@@ -120,4 +156,13 @@ td {
 .close-popup {
 	color: blue;
 	background-color: white;
+}
+
+
+
+// hide tiles in darkened border-bottom-style: 
+.hidden {
+	// display: none;
+	background-color: #333;
+	color: #333;
 }

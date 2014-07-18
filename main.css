@@ -1,21 +1,28 @@
 body {
-  margin: 2%;
+  margin: 1%;
+}
+
+#game-wrapper {
+  width: 100%;
 }
 
 #game-window {
-  height: 1000px;
+  float: left;
+  text-align: center;
+  vertical-align: middle;
 }
 
 #HUD {
-  display: inline-block;
-  margin-bottom: 1%;
+  padding: 1%;
   background-color: #eee;
-  height: 5%;
+  word-wrap: break-word;
+  vertical-align: top;
+  font-family: "Courier", serif;
+  overflow: hidden;
 }
 
 #messages {
-  height: 120px;
-  width: 1000px;
+  height: 300px;
   background-color: #eee;
   color: black;
   overflow-y: scroll;
@@ -30,54 +37,51 @@ table {
 }
 
 td {
-  height: 20px;
   text-align: center;
-  width: 20px;
-  border: 1px solid #aaa;
+  border: 1px solid #555;
+}
+
+#dead {
+  height: 100%;
+  widows: 1000px;
+  color: red;
 }
 
 .tile {
-  width: 16.66667px;
-  height: 27.5px;
   position: relative;
-}
-
-.hidden {
-  display: none;
+  overflow: hidden;
 }
 
 .character {
-  z-index: 2;
-  font-size: 1.205em;
-  line-height: 1.5;
+  color: #0066FF;
+}
+
+.gold {
+  color: gold;
 }
 
 .wall {
   color: #777;
-  padding-left: 0.05em;
-  font-size: 1.7em;
 }
 
 .dot {
   color: #fff;
-  padding-left: 0.10em;
 }
 
 .rat {
-  font-size: 1.8em;
-  padding-left: 0.07em;
-  line-height: 0.9;
   color: #996600;
 }
 
 .door {
-  font-size: 1.6em;
-  padding-left: 0.03em;
   color: brown;
 }
 
-.upstairs, .downstairs {
-  font-size: 1.4em;
+.kobold {
+  color: #003300;
+}
+
+.goblin {
+  color: #CC3300;
 }
 
 .text-popup {
@@ -91,4 +95,9 @@ td {
 .close-popup {
   color: blue;
   background-color: white;
+}
+
+.hidden {
+  background-color: #333;
+  color: #333;
 }

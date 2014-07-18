@@ -3,20 +3,41 @@
 <head>
   <meta charset="utf-8">
   <title>Drogue</title>
-  <!-- <link rel="stylesheet" type="text/css" href="http://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.1.1/css/bootstrap.min.css"> -->
-  <!-- <link rel="stylesheet" type="text/css" href="http://summer2014-refactoru-students.herokuapp.com/public/fontello/css/fontello.css"> -->
   <link rel="stylesheet" type="text/css" href="http://cdnjs.cloudflare.com/ajax/libs/normalize/3.0.1/normalize.min.css">
   <link rel="stylesheet" type="text/css" href="main.css">
 </head>
 <body>
-	<div id="main-wrapper">
-	<div id="messages"></div>
-		<div>
-			
-			<div id="HUD">HP: 100</div>
-			<div id="game-window">
-			<!-- <div class='tile'>something</div> -->
-				<!-- jQuery appends here -->
+	<div>
+		<div id="main-wrapper">
+		
+			<div id="game-wrapper">
+				
+				<div id="game-window" class="scale-font">
+				<!-- <div class='tile'>something</div> -->
+					<!-- jQuery appends here -->
+				</div>
+				<div id="HUD">
+					<div id='hp'>
+						HP: 100
+						<!-- HP updates here -->
+					</div>
+					<div>
+						<br>
+						===========================
+						<br><br>
+						Inventory:
+					</div>
+					<div id='inventory'>
+						<!-- inventory text goes here -->
+					</div>
+						<br>
+						===========================
+						<br><br>
+						Messages:
+					<div id="messages">
+						<!-- messages go here -->
+					</div>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -35,7 +56,7 @@
 		        <tr> 
 		        	{{#this}}
 	            	<td>
-	            		<div class="tile {{class}}" id='{{columnCounter}}-{{rowCounter}}'>{{text}}</div>
+	            		<div class="tile {{class}}" id='{{columnCounter}}-{{rowCounter}}'>{{{text}}}</div>
             		</td> 
 		            {{/this}}
 		        </tr> 
