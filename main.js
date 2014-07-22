@@ -17,10 +17,6 @@
  */
 
 /* copy-bin:
-else if(checkNextTile(horz, vert) === 'door'){
-	currentLevel.updateActor(horz, vert);
-	addMessage("You kick down the door. A loud noise reverberates throughout the dungeon.")
-}
 
 */
 
@@ -28,12 +24,27 @@ else if(checkNextTile(horz, vert) === 'door'){
 var GameSpace = (function() {
 // helper funcitons
 	// constant variables
-	var MAP_COLUMNS = 30;
-	var MAP_ROWS = 20;
-	var ROOMS_QUANTITY = 16;
+	var MAP_COLUMNS = 60;
+	var MAP_ROWS = 40;
+	var ROOMS_QUANTITY = 50;
 	var ROOM_MIN_DIMENSION = 4;
-	var ROOM_MAX_DIMENSION = 6;
-	var MONSTER_PER_LEVEL = 12;
+	var ROOM_MAX_DIMENSION = 9;
+	var MONSTER_PER_LEVEL = 30;
+
+	// utility functions for resizing tiles upon window load & resize
+	var resizeTiles = function() {
+		// var winSize = Math.min($(window).width(), $(window).height()) * 0.85;
+		var winHeight = $(window).height() * 0.85
+		var winWidth = $(window).width() * 0.75
+		$(".tile").width(winWidth / GameSpace.currentLevel.columns);
+		$(".tile").height(winHeight / GameSpace.currentLevel.rows);
+
+	}
+
+	var resizeText = function() {
+		// Set font size to scale with square height
+		$('.scale-font').css('font-size', $('.tile').height()*1.05);
+	}
 
 	// formats location of object to reference tile id
 	var pos = function(loc) {
@@ -88,8 +99,7 @@ var GameSpace = (function() {
 	}
 
 	var turnHandler = function () {
-		totalTurns++;
-		addMessage("----------- Turn " + totalTurns + " -----------");
+		
 		for(var i = 0; i < monstersActive.length; i++) {
 			monsterTurn(monstersActive[i]);
 		}
@@ -99,6 +109,8 @@ var GameSpace = (function() {
 		rogue.regen();
 		$("#hp").text("HP: " + Math.floor(rogue.health));
 		rogue.drawInventory();
+		totalTurns++;
+		addMessage("----------- Turn " + totalTurns + " -----------");
 	}
 
 	// todo 
@@ -124,7 +136,7 @@ var GameSpace = (function() {
 				monster.combatHandler(rogue);
 			}
 			// check if next square is a monster & wait
-			else if(currentLevel.map[path[1][1]][path[1][0]].monster) {
+			else if(currentLevel.map[path[1][1]][path[1][0]] instanceof Monster) {
 				// do nothing on purpose
 			}
 			else {
@@ -645,7 +657,6 @@ var GameSpace = (function() {
 		Tile.call(this, x, y);
 		this.text = "+"
 		this.class = "door";
-		this.door = true;
 		this.inspectText = "A door. I wonder what is on the other side.";
 	}
 
@@ -656,7 +667,6 @@ var GameSpace = (function() {
 		Tile.call(this, x, y);
 		this.text = ">"
 		this.class = "downstairs";
-		this.downStairs = true;
 		this.inspectText = "Stairs leading further into the dungeon. Are you ready for a greater challenge?";
 	}
 
@@ -671,7 +681,6 @@ var GameSpace = (function() {
 		Tile.call(this, x, y);
 		this.text = "<"
 		this.class = "upstairs";
-		this.upStairs = true;
 		this.inspectText = "Stairs leading up to an easier part of the dungeon.";
 	}
 
@@ -749,7 +758,7 @@ var GameSpace = (function() {
 							"</div>");
 
 				}
-				else if(defender.monster) {
+				else if(defender instanceof Monster) {
 					// console.log("monster dead")
 					defender.removeActor(monstersActive);
 					var loot = defender.lootDrop();
@@ -773,7 +782,6 @@ var GameSpace = (function() {
 		Actor.call(this, x, y);
 		this.text = "@";
 		this.class = "character";
-		this.character = true;
 		this.inspectText = "A badass MFer.";
 		this.inventoryOpen = false;
 		this.inventoryFocus = null;
@@ -869,7 +877,7 @@ var GameSpace = (function() {
 		equipment.equipped = true;
 		this.offense += equipment.offenseMod;
 		this.maxDamage += equipment.damageMod;
-		this.damage += equipment.defenseMod
+		this.defense += equipment.defenseMod
 	}
 
 	Character.prototype.unEquip = function(equipment) {
@@ -881,16 +889,16 @@ var GameSpace = (function() {
 
 	Character.prototype.checkNextTile = function(horz, vert) {
 		var nextTile = currentLevel.map[this.y + vert][this.x + horz];
-		if(nextTile.monster) {
+		if(nextTile instanceof Monster) {
 			return "monster";
 		}
 		else if(nextTile.impassable) {
 			return "impassable";
 		}
-		else if(nextTile.door) {
+		else if(nextTile instanceof Door) {
 			return "door";
 		}
-		else if(nextTile.character) {
+		else if(nextTile instanceof Character) {
 			return "character";
 		}
 		// this must come before gold or will add gold to inventory
@@ -1082,7 +1090,6 @@ var GameSpace = (function() {
 // monster related code
 	var Monster = function(x, y) {
 		Actor.call(this, x, y);
-		this.monster = true;
 	}
 
 	Monster.prototype = new Actor();
@@ -1224,7 +1231,7 @@ var GameSpace = (function() {
 
 		// combat stuff
 		this.offenseMod = 5;
-		this.damageMod = 6;
+		this.damageMod = 8;
 	}
 
 	Sword.prototype = new Weapon();
@@ -1297,7 +1304,8 @@ var GameSpace = (function() {
 	var monstersAvailable = []
 	var totalTurns = 0;
 	var pathFinder = new PF.AStarFinder({
-	    allowDiagonal: true
+	    allowDiagonal: true,
+	    dontCrossCorners: false
 	});
 
 	var initialize = function() {
@@ -1313,22 +1321,10 @@ var GameSpace = (function() {
 		rogue: rogue,
 		clickText: clickText,
 		currentLevel: currentLevel,
+		resizeTiles: resizeTiles,
+		resizeText: resizeText
 	}
 })();
-
-var resizeTiles = function() {
-		// var winSize = Math.min($(window).width(), $(window).height()) * 0.85;
-		var winHeight = $(window).height() * 0.85
-		var winWidth = $(window).width() * 0.75
-		$(".tile").width(winWidth / GameSpace.currentLevel.columns);
-		$(".tile").height(winHeight / GameSpace.currentLevel.rows);
-
-	}
-
-var resizeText = function() {
-	// Set font size to scale with square height
-	$('.scale-font').css('font-size', $('.tile').height()*1.05);
-}
 
 // jquery event handlers
 $(document).on('ready', function() {
@@ -1346,7 +1342,7 @@ $(document).on('ready', function() {
 	// keyboard handler
 	
 	$(document).keypress(function(e) {
-		console.log(e.charCode);
+		// console.log(e.charCode);
 		GameSpace.rogue.keyHandler(e.charCode);
 	});
 
@@ -1363,11 +1359,11 @@ $(document).on('ready', function() {
 	})
 
 
-	resizeTiles();
-	resizeText();
+	GameSpace.resizeTiles();
+	GameSpace.resizeText();
 	$(window).resize(function() {
-		resizeTiles();
-		resizeText();
+		GameSpace.resizeTiles();
+		GameSpace.resizeText();
 
 		
 	})
