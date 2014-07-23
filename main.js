@@ -975,7 +975,7 @@ var GameSpace = (function() {
 
 				// go down a floor = ">"
 				if(keyCode === 62) {
-					if(this.standingOn.downStairs) {
+					if(this.standingOn instanceof DownStairs) {
 						createNewLevel(1);
 					}
 					else {
@@ -984,7 +984,7 @@ var GameSpace = (function() {
 				}
 				// go up a floor = "<"
 				else if(keyCode === 60) {
-					if(this.standingOn.upStairs) {
+					if(this.standingOn instanceof UpStairs) {
 						createNewLevel(-1);
 					}
 					else {
