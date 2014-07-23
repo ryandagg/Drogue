@@ -887,44 +887,24 @@ var GameSpace = (function() {
 		this.defense -= equipment.defenseMod
 	}
 
-	Character.prototype.checkNextTile = function(horz, vert) {
-		var nextTile = currentLevel.map[this.y + vert][this.x + horz];
-		if(nextTile instanceof Monster) {
-			return "monster";
-		}
-		else if(nextTile.impassable) {
-			return "impassable";
-		}
-		else if(nextTile instanceof Door) {
-			return "door";
-		}
-		else if(nextTile instanceof Character) {
-			return "character";
-		}
-		// this must come before gold or will add gold to inventory
-		else if(nextTile instanceof Gold) {
-			return "gold";
-		}
-		else if(nextTile instanceof Item) {
-			return "item";
-		}
-		else {
-			return 'empty';
-		}
-	}
-
 	// todo put in character class
 	Character.prototype.keyHandler = function(keyCode) {
 		// console.log('working?')
+		var horz;
+		var vert;
 
 		// quit inventory = "Q"
 		if(keyCode === 81) {
 			this.inventoryOpen = false;
 			this.inventoryFocus = null;
 		}
-		if(!this.inventoryOpen || this.tunneling) {
-			var horz;
-			var vert;
+		// runs inventory handler if inventory is open
+		else if(this.inventoryOpen) {
+			this.inventoryHandler(keyCode);
+		}	
+		// movement related keycodes. just 
+		else if(!this.inventoryOpen || this.tunneling) {
+
 			// "right = l"
 			if(keyCode === 108) {
 				horz = 1;
@@ -971,6 +951,7 @@ var GameSpace = (function() {
 				vert = 0;
 				this.tunneling = false;
 			}
+			
 			if(!this.tunneling) {
 
 				// go down a floor = ">"
@@ -1019,45 +1000,41 @@ var GameSpace = (function() {
 			// only runs if a direciton was selected on keyboard
 			if(horz !== undefined) {
 				// console.log("horz: ", horz, " vert: ", vert);
+				var nextTile = currentLevel.map[this.y + vert][this.x + horz];
 
-				// this must go before normal walls while not tunelling
-				if(this.checkNextTile(horz, vert) === 'impassable' && this.tunneling) {
+				if(nextTile.impassable && this.tunneling) {
 						for(var i = 0; i < 20; i++) {
 							turnHandler();
 						}
 						addMessage("You dig through the wall with your pick.");
 						currentLevel.emptyTile(this.x + horz, this.y + vert);
 						this.tunneling = false;
-					}
-				else if(this.checkNextTile(horz, vert) === 'impassable') {
+				}
+				else if(nextTile.impassable) {
 						addMessage("You shall not pass!")
-					}
-				else if(this.checkNextTile(horz, vert) === 'monster') {
+				}
+				else if(nextTile instanceof Monster) {
 					this.combatHandler(currentLevel.map[this.y + vert][this.x + horz]);
 					turnHandler();
 				}
-				else if(this.checkNextTile(horz, vert) === 'door'){
+				else if(nextTile instanceof Door) {
 					currentLevel.emptyTile(this.x + horz, this.y + vert);
 					currentLevel.findRoomLightRoom(this.x + horz, this.y + vert, currentLevel.roomList);
 					// update dungeon. Takes a turn to kick down a door.
 					addMessage("You kick down the door. A loud noise reverberates throughout the dungeon.")
 					turnHandler();
 				}
-				else if(this.checkNextTile(horz, vert) === 'empty') {
-					currentLevel.updateActor(horz, vert, this);
+				else if(nextTile instanceof Character) {
 					turnHandler();
 				}
-				else if(this.checkNextTile(horz, vert) === 'character') {
-					turnHandler();
-				}
-				else if(this.checkNextTile(horz, vert) === 'gold') {
+				else if(nextTile instanceof Gold) {
 					this.gold += currentLevel.map[this.y + vert][this.x + horz].quantity;
 					currentLevel.map[this.y + vert][this.x + horz] = new Tile(this.x + horz, this.y + vert);
 					currentLevel.updateActor(horz, vert, this);
 					$("#gold").text("Gold: " + this.gold);
 					turnHandler();
 				}
-				else if(this.checkNextTile(horz, vert) === 'item') {
+				else if(nextTile instanceof Item) {
 					if(this.openInventorySlot()) {
 						var slot = this.openInventorySlot()
 						this.inventory[slot] = currentLevel.map[this.y + vert][this.x + horz];
@@ -1070,13 +1047,14 @@ var GameSpace = (function() {
 						turnHandler();
 					}
 				}
+				// If the nextTile is empty. Not checked for as is default.
+				else {
+					currentLevel.updateActor(horz, vert, this);
+					turnHandler();
+				}
 			}
-		}	
-		else {
-			this.inventoryHandler(keyCode);
 		}
-
-	}	
+	}
 
 	Character.prototype.drawInventory = function() {
 		$("#inventory").empty();
@@ -1340,7 +1318,6 @@ $(document).on('ready', function() {
 	}
 
 	// keyboard handler
-	
 	$(document).keypress(function(e) {
 		// console.log(e.charCode);
 		GameSpace.rogue.keyHandler(e.charCode);
@@ -1358,14 +1335,14 @@ $(document).on('ready', function() {
 		$(".text-popup").remove();
 	})
 
-
+	// change tile & text on ready
 	GameSpace.resizeTiles();
 	GameSpace.resizeText();
+
+	// change map size on resize
 	$(window).resize(function() {
 		GameSpace.resizeTiles();
 		GameSpace.resizeText();
-
-		
 	})
 	
 });
